@@ -82,6 +82,3 @@ The scope of this project includes:
 
 ## Project Structure
 
-## License
-
-[Add your chosen license here]
