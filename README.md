@@ -14,8 +14,6 @@ The scope of this project includes:
 4. Analysis of road safety scenarios through text and image inputs.
 5. Generation of AI-powered responses and recommendations for road safety improvements.
 
-The platform aims to assist road safety professionals, urban planners, and researchers in analyzing complex road scenarios and identifying potential safety hazards or improvements.
-
 ## Group Members
 
 | UWA ID   | Name                 | GitHub Username   |
