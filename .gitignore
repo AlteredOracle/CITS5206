@@ -1,0 +1,19 @@
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Database
+instance/
+
+# Python
+*.pyc
+__pycache__
+.pytest_cache
+
+# Others
+.DS_Store
+
+# App
