@@ -87,3 +87,8 @@ The scope of this project includes:
 
 ## Project Structure
 
+## Design Mockups
+
+For design mockups and visual representations of the Multimodal LLM Road Safety Platform, please refer to the following link:
+
+[View Design on Figma](https://www.figma.com/design/XaY1Gj4GGDYnQT3a7rHhKs/Multimodal-LLM-Road-Safety-Platform?node-id=0-1&t=m9u1DMpXtYAX23DD-1)
