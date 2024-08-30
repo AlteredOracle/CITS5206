@@ -45,10 +45,11 @@ The scope of this project includes:
 
 ## Technical Stack
 
-- Python 3.x
-- Streamlit for web interface
-- Google Generative AI (Gemini 1.5 Flash)
-- Pillow (PIL) and SciPy for image processing
+![Python](https://img.shields.io/badge/Python-v3.x-blue)
+![Streamlit](https://img.shields.io/badge/Streamlit-v1.0.0-blue) 
+![Google Generative AI](https://img.shields.io/badge/Google_Generative_AI-Gemini_1.5_Flash-blue)
+![Pillow](https://img.shields.io/badge/Pillow-v8.0.0-blue)
+![SciPy](https://img.shields.io/badge/SciPy-v1.7.0-blue)
 
 ## Setup and Installation
 
