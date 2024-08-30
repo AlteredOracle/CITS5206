@@ -36,15 +36,19 @@ The scope of this project includes:
   - Sharpness
   - Color
   - Rain effect
+  - Overlay
+  - Warp
 - Adjustable distortion intensity
+- Batch processing of multiple images
 - AI-generated responses and recommendations for road safety scenarios
+- Structured CSV output for analysis results
 
 ## Technical Stack
 
 - Python 3.x
 - Streamlit for web interface
 - Google Generative AI (Gemini 1.5 Flash)
-- Pillow (PIL) for image processing
+- Pillow (PIL) and SciPy for image processing
 
 ## Setup and Installation
 
