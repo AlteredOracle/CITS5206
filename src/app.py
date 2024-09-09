@@ -24,14 +24,12 @@ def main():
         print("Error: GEMINI_API_KEY env variable not set.")
         return
     
-    use_image = input("Do you want to analyze an image? (yes/no): ").lower() == 'yes'
+    prompt = input("Enter your prompt for the AI: ")
+    image_path = input("Enter the path to the image (or press Enter to skip): ")
     
-    if use_image:
-        image_path = input("Enter the path to the image: ")
-        prompt = input("Enter your prompt about the image: ")
+    if image_path.strip():
         get_analysis(prompt, image_path)
     else:
-        prompt = input("Enter your prompt for the AI: ")
         get_analysis(prompt)
 
 if __name__ == "__main__":
