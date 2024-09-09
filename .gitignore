@@ -4,7 +4,7 @@
 env/
 venv/
 ENV/
-
+test_images/
 # Database
 instance/
 
