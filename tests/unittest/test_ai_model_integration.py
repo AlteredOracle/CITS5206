@@ -49,3 +49,25 @@ class TestGetAnalysis(unittest.TestCase):
         except TimeoutException as e:
             self.fail(f"get_analysis raised {e} unexpectedly!")
 
+
+class TestFileUtils(unittest.TestCase):
+
+    def test_file_does_exist(self):
+        # Testing if the file exists
+        with patch("src.utils.os.path.exists", return_value=True), \
+             patch("src.utils.os.path.isfile", return_value=True):  # The path is correct
+            self.assertTrue(file_does_exist("test_path.jpg"))
+        
+        # Testing if the file not exists
+        with patch("src.utils.os.path.exists", return_value=False), \
+             patch("src.utils.os.path.isfile", return_value=False):  # The path is correct
+            self.assertFalse(file_does_exist("test_path.jpg"))
+
+    def test_is_valid_image(self):
+        # Testing the image is valid
+        with patch("PIL.Image.open", return_value=MagicMock(spec=Image.Image)):
+            self.assertTrue(is_valid_image("valid_image.jpg"))
+        # Testing the image is invalid
+        with patch("PIL.Image.open", side_effect=OSError):
+            self.assertFalse(is_valid_image("invalid_image.txt"))
+
