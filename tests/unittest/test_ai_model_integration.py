@@ -31,5 +31,21 @@ class TestGenerateContentTimeout(unittest.TestCase):
         with self.assertRaises(TimeoutException):
             generate_content_timeout(mock_model_instance, "Test prompt")
 
+class TestGetAnalysis(unittest.TestCase):
 
+    @patch("src.app.generate_content_timeout", side_effect=google_exceptions.InvalidArgument("Invalid"))
+    def test_get_analysis_invalid_argument(self, mock_generate_content):
+        # Test whether the function correctly handles the InvalidArgument exception
+        try:
+            get_analysis("Test prompt")
+        except google_exceptions.InvalidArgument as e:
+            self.fail(f"get_analysis raised {e} unexpectedly!")
+
+    @patch("src.app.generate_content_timeout", side_effect=TimeoutException)
+    def test_get_analysis_timeout_exception(self, mock_generate_content):
+        # Test whether the function correctly handles the TimeoutException
+        try:
+            get_analysis("Test prompt")
+        except TimeoutException as e:
+            self.fail(f"get_analysis raised {e} unexpectedly!")
 
