@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
 from PIL import Image
-from src.app import generate_content_timeout, get_analysis, file_does_exist, is_valid_image, TimeoutException
+from src.app import generate_content_timeout, get_analysis, file_does_exist, is_valid_image, TimeoutException, main
 from google.api_core import exceptions as google_exceptions
 
 class TestGenerateContentTimeout(unittest.TestCase):
@@ -71,3 +71,20 @@ class TestFileUtils(unittest.TestCase):
         with patch("PIL.Image.open", side_effect=OSError):
             self.assertFalse(is_valid_image("invalid_image.txt"))
 
+class TestMainFunction(unittest.TestCase):
+
+    @patch("src.app.os.getenv", return_value="dummy_api_key")  # Simulate setting GEMINI_API_KEY
+    @patch("src.app.file_does_exist", return_value=True)  # Simulate the file exists
+    @patch("src.app.is_valid_image", return_value=True)  # Simulate the image is valid
+    @patch("PIL.Image.open", return_value=MagicMock())  # Simulate opening the image
+    @patch("src.app.genai.GenerativeModel")  # Simulate the API model
+    @patch("builtins.input", side_effect=["Test prompt", "valid_image.jpg"])  # Simulate input
+    def test_main_success(self, mock_input, mock_gen_model, mock_image_open, mock_is_valid_image, mock_file_exist, mock_getenv):
+        mock_model_instance = MagicMock()
+        mock_gen_model.return_value = mock_model_instance
+        mock_model_instance.generate_content.return_value = MagicMock(text="Generated content")
+
+        with patch('builtins.print') as mocked_print:
+            main()
+            mocked_print.assert_any_call("AI Analysis Result:")
+            mocked_print.assert_any_call("Generated content")
