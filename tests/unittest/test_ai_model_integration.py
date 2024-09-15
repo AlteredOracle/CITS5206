@@ -71,6 +71,7 @@ class TestGetAnalysis(unittest.TestCase):
         except TimeoutException as e:
             self.fail(f"get_analysis raised {e} unexpectedly!")
 
+
 class TestFileUtils(unittest.TestCase):
 
     def test_file_does_exist(self):
@@ -107,3 +108,8 @@ class TestMainFunction(unittest.TestCase):
             main()
             mocked_print.assert_any_call("AI Analysis Result:")
             mocked_print.assert_any_call("Generated content")
+
+    
+  
+
+
