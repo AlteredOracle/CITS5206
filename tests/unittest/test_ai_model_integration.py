@@ -71,6 +71,29 @@ class TestGetAnalysis(unittest.TestCase):
         except TimeoutException as e:
             self.fail(f"get_analysis raised {e} unexpectedly!")
 
+    @patch("app.generate_content_timeout")
+    @patch("PIL.Image.open")
+    @patch("app.genai.GenerativeModel")  # Mock model instance
+    def test_get_analysis_args_passing(self, mock_gen_model, mock_image_open, mock_generate_content):
+        """
+        Test whether get_analysis correctly passes model, prompt, and image arguments to generate_content_timeout.
+        """
+        mock_image = MagicMock()
+        mock_image_open.return_value = mock_image
+
+        # Mock model instance
+        mock_model_instance = MagicMock()
+        mock_gen_model.return_value = mock_model_instance
+
+        prompt = "Test prompt"
+        image_path = "test_image.jpg"
+
+        # Call get_analysis function
+        get_analysis(prompt, image_path)
+
+        # Verify the parameters received by generate_content_timeout
+        mock_generate_content.assert_called_once_with(mock_model_instance, prompt, mock_image)
+
 
 class TestFileUtils(unittest.TestCase):
 
