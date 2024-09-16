@@ -1,0 +1,9 @@
+Technical Document - Sprint 1
+1. Overview
+2. Functionalities
+2.1 Timeout Handling
+2.2 Image File Validation
+2.3 Custom Exception for Timeout
+3. Error Handling
+4. Integration with the Gemini AI Model
+5. Conclusion
