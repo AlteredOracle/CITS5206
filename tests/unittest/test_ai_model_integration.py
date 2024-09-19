@@ -105,7 +105,7 @@ class TestFileUtils(unittest.TestCase):
         
         # Testing if the file not exists
         with patch("utils.os.path.exists", return_value=False), \
-             patch("utils.os.path.isfile", return_value=False):  # The path is correct
+             patch("utils.os.path.isfile", return_value=False):  # The path is not correct
             self.assertFalse(file_does_exist("test_path.jpg"))
 
     def test_is_valid_image(self):
