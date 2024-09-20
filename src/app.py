@@ -20,43 +20,70 @@ def generate_content_timeout(model, prompt, image=None):
 
 
 def get_analysis(prompt, image_path=None):
+    # Configure the Gemini API using the API key from the environment variable
     genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+    # Select the generative model 'gemini-1.5-flash-latest' from the Gemini API
     model = genai.GenerativeModel('gemini-1.5-flash-latest')
+
+    # Open the image from the provided image path, or set to None if no image path is provided
     image = Image.open(image_path) if image_path else None
 
     try:
+        # Call the generate_content_timeout function with the selected model, prompt, and image
         resp = generate_content_timeout(model, prompt, image)
+
+        # Print the response text to the console
         print("AI Analysis Result:")
         print(resp.text)
     except google_exceptions.InvalidArgument as e:
+        # Catch invalid argument errors and print an error message
         print(f"Invalid argument error: {str(e)}")
     except google_exceptions.ResourceExhausted:
+        # Catch resource exhaustion error and print an error message
         print("Error: API quota exceeded. Please try again later or upgrade your plan.")
     except TimeoutException:
-        print("Error: Request timed out. Please try again or check your internet connection.")
+        # Catch timeout errors and print an error message
+        print(
+            "Error: Request timed out. Please try again or check your internet connection.")
     except Exception as e:
+        # Catch any other unexpected errors and print an error message
         print(f"Unexpected error: {str(e)}")
 
 
 def main():
+    # Load environment variables from a .env file
     load_dotenv()
+    
+    # Check if GEMINI_API_KEY environment variable is set
     if os.getenv("GEMINI_API_KEY") is None:
+        # If not set, print an error message and exit
         print("Error: GEMINI_API_KEY env variable not set.")
         return
 
+    # Prompt the user to enter a prompt for the AI
     prompt = input("Enter your prompt for the AI: ")
+    
+    # Prompt the user to enter the path to an image file
     image_path = input("Enter the path to the image (or press Enter to skip): ").strip()
 
+    # If an image path is provided
     if image_path:
+        # Check if the file exists at the specified path
         if not file_does_exist(image_path):
+            # If the file doesn't exist, print an error message and exit
             print("Error: invalid file path or the file does not exist.")
             return
+        # Check if the file is a valid image
         elif not is_valid_image(image_path):
+            # If the file is not a valid image, print an error message and exit
             print("Error: not an image file, please check again.")
             return
         else:
+            # Call get_analysis() function with both prompt and image_path if image path is valid
             get_analysis(prompt, image_path)
     else:
+        # Call get_analysis() with only the prompt if image path is not provided
         get_analysis(prompt)
 
 
