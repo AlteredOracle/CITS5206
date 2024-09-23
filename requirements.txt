@@ -2,3 +2,4 @@ google-generativeai
 pillow 
 python-dotenv
 requests
+streamlit

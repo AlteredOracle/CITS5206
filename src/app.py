@@ -7,6 +7,7 @@ from utils import file_does_exist
 from utils import is_valid_image
 from utils import timeout
 from utils import TimeoutException
+import streamlit as st
 
 
 @timeout(timeout=20)
@@ -33,19 +34,32 @@ def get_analysis(prompt, image_path=None):
     except google_exceptions.ResourceExhausted:
         print("Error: API quota exceeded. Please try again later or upgrade your plan.")
     except TimeoutException:
-        print("Error: Request timed out. Please try again or check your internet connection.")
+        print(
+            "Error: Request timed out. Please try again or check your internet connection.")
     except Exception as e:
         print(f"Unexpected error: {str(e)}")
 
 
 def main():
     load_dotenv()
-    if os.getenv("GEMINI_API_KEY") is None:
-        print("Error: GEMINI_API_KEY env variable not set.")
-        return
 
+    # Set page configuration
+    st.set_page_config(
+        page_title="Multimodal LLM Road Safety Platform", layout="wide")
+
+    st.title("Multimodal LLM Road Safety Platform")
+
+    api_key = st.text_input("Enter your Gemini API key:", type="password")
     prompt = input("Enter your prompt for the AI: ")
-    image_path = input("Enter the path to the image (or press Enter to skip): ").strip()
+    image_path = input(
+        "Enter the path to the image (or press Enter to skip): ").strip()
+    
+    if api_key:
+        os.environ['GEMINI_API_KEY'] = api_key
+        genai.configure(api_key=os.environ['GEMINI_API_KEY'])
+        st.success("API key set successfully!")
+    else:
+        st.warning("Please enter your API key to proceed.")
 
     if image_path:
         if not file_does_exist(image_path):
