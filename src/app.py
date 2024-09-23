@@ -61,7 +61,7 @@ if api_key:
             # Set default intensity when no distortion is selected
             intensity = 1.0
             overlay_image = None
-        input_text = st.text_input("Input Prompt:", key="input")
+        input_text = st.text_input("Input Prompt:", key="input")# Creates a text input field for the user to enter a prompt.
         uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
         
         # Initialize
@@ -94,23 +94,27 @@ if api_key:
                 st.error(f"An error occurred while processing the image: {str(e)}")
                 st.error(traceback.format_exc())
 
-        submit = st.button("Analyse")
+        submit = st.button("Analyse") # Create a Streamlit button labeled "Analyse". When the user clicks this button, it will trigger the subsequent analysis logic.
 
-        if submit:
-            if input_text or processed_image:
+        if submit:# Check if the user has clicked the "Analyse" button.
+            if input_text or processed_image:# Verify that the user has provided either text input (input_text) or a processed image (processed_image).
+               # At least one input is required for analysis.
                 try:
                     response = get_gemini_response(input_text, processed_image, model_choice)
-                    
+                    # Display a subheader for the user input section.
                     st.subheader("User Input")
+                     # Display the text input if provided, otherwise show "[No text input]".
                     st.write(input_text if input_text else "[No text input]")
-                    
+                     # Display a subheader for the AI response section.
                     st.subheader("AI Response")
+                     # Show the response returned by the AI model.
                     st.write(response)
                 except Exception as e:
+                     # If any error occurs during the get_gemini_response function call, display the error message.
                     st.error(f"An error occurred during analysis: {str(e)}")
-                
+                # if they want to analyze a different image or prompt.
                 st.warning("Please clear or change the input if you wish to analyze a different image or prompt.")
-            else:
+            else: # If the user hasn't provided either text input or an image file, display a warning message.
                 st.warning("Please provide either an input prompt, an image, or both.")
     else:  # If not in 'Single' mode, handle Bulk Analysis
         st.write("Bulk analysis mode selected.")
