@@ -1,64 +1,43 @@
-from dotenv import load_dotenv
-import google.generativeai as genai
-from google.api_core import exceptions as google_exceptions
+import streamlit as st
 import os
-from PIL import Image
-from utils import file_does_exist
-from utils import is_valid_image
-from utils import timeout
-from utils import TimeoutException
+import google.generativeai as genai
 
+# Set page configuration: sets the title of the page and adjusts the layout to wide
+st.set_page_config(page_title="Multimodal LLM Road Safety Platform", layout="wide")
 
-@timeout(timeout=20)
-def generate_content_timeout(model, prompt, image=None):
-    """
-    generate content using AI model with a timeout setting.
-    """
-    if image:
-        return model.generate_content([prompt, image])
-    return model.generate_content(prompt)
+# Display the title of the app
+st.title("Multimodal LLM Road Safety Platform")
 
+# Input field for the user to enter their Gemini API key (masked as a password)
+api_key = st.text_input("Enter your Gemini API key:", type="password")
 
-def get_analysis(prompt, image_path=None):
-    genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-    model = genai.GenerativeModel('gemini-1.5-flash-latest')
-    image = Image.open(image_path) if image_path else None
+# Check if the API key is provided
+if api_key:
+    # Set the environment variable with the provided API key
+    os.environ['GEMINI_API_KEY'] = api_key
+    # Configure the Google Generative AI client with the API key
+    genai.configure(api_key=os.environ['GEMINI_API_KEY'])
+    # Display success message if API key is set correctly
+    st.success("API key set successfully!")
 
-    try:
-        resp = generate_content_timeout(model, prompt, image)
-        print("AI Analysis Result:")
-        print(resp.text)
-    except google_exceptions.InvalidArgument as e:
-        print(f"Invalid argument error: {str(e)}")
-    except google_exceptions.ResourceExhausted:
-        print("Error: API quota exceeded. Please try again later or upgrade your plan.")
-    except TimeoutException:
-        print("Error: Request timed out. Please try again or check your internet connection.")
-    except Exception as e:
-        print(f"Unexpected error: {str(e)}")
+    # Sidebar for additional settings
+    st.sidebar.title("Settings")
 
+    # Dropdown menu in the sidebar to select the AI model
+    model_choice = st.sidebar.selectbox(
+        "Choose Model:",
+        ["gemini-1.5-flash-latest", "gemini-1.5-pro"]
+    )
 
-def main():
-    load_dotenv()
-    if os.getenv("GEMINI_API_KEY") is None:
-        print("Error: GEMINI_API_KEY env variable not set.")
-        return
+    # Add a new option in the sidebar to choose analysis mode: Single or Bulk
+    analysis_mode = st.sidebar.radio("Analysis Mode", ["Single", "Bulk"])
 
-    prompt = input("Enter your prompt for the AI: ")
-    image_path = input("Enter the path to the image (or press Enter to skip): ").strip()
-
-    if image_path:
-        if not file_does_exist(image_path):
-            print("Error: invalid file path or the file does not exist.")
-            return
-        elif not is_valid_image(image_path):
-            print("Error: not an image file, please check again.")
-            return
-        else:
-            get_analysis(prompt, image_path)
-    else:
-        get_analysis(prompt)
-
-
-if __name__ == "__main__":
-    main()
+    # If 'Single' mode is selected, display the corresponding message
+    if analysis_mode == "Single":
+        st.write("Single image analysis mode selected.")
+    # If 'Bulk' mode is selected, display the corresponding message
+    else:  # Bulk Analysis
+        st.write("Bulk analysis mode selected.")
+else:
+    # Display a warning if the API key is not provided
+    st.warning("Please enter your API key to proceed.")
