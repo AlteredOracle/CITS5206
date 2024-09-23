@@ -2,7 +2,7 @@ import streamlit as st
 import os
 import google.generativeai as genai
 from PIL import Image
-from utils import apply_distortion
+from utils import apply_distortion, get_gemini_response
 import traceback
 
 # Set page configuration: sets the title of the page and adjusts the layout to wide
@@ -61,7 +61,7 @@ if api_key:
             # Set default intensity when no distortion is selected
             intensity = 1.0
             overlay_image = None
-
+        input_text = st.text_input("Input Prompt:", key="input")
         uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
         
         # Initialize
@@ -93,6 +93,25 @@ if api_key:
             except Exception as e:
                 st.error(f"An error occurred while processing the image: {str(e)}")
                 st.error(traceback.format_exc())
+
+        submit = st.button("Analyse")
+
+        if submit:
+            if input_text or processed_image:
+                try:
+                    response = get_gemini_response(input_text, processed_image, model_choice)
+                    
+                    st.subheader("User Input")
+                    st.write(input_text if input_text else "[No text input]")
+                    
+                    st.subheader("AI Response")
+                    st.write(response)
+                except Exception as e:
+                    st.error(f"An error occurred during analysis: {str(e)}")
+                
+                st.warning("Please clear or change the input if you wish to analyze a different image or prompt.")
+            else:
+                st.warning("Please provide either an input prompt, an image, or both.")
     else:  # If not in 'Single' mode, handle Bulk Analysis
         st.write("Bulk analysis mode selected.")
 else:
