@@ -7,6 +7,7 @@ from utils import file_does_exist
 from utils import is_valid_image
 from utils import timeout
 from utils import TimeoutException
+import streamlit as st
 
 
 @timeout(timeout=20)
@@ -54,7 +55,33 @@ def get_analysis(prompt, image_path=None):
 def main():
     # Load environment variables from a .env file
     load_dotenv()
-    
+
+    # Set the page configuration to customize the appearance of the Streamlit app
+    st.set_page_config(
+        page_title="Multimodal LLM Road Safety Platform", 
+        layout="wide"
+    )
+
+    # Display the title of the app
+    st.title("Multimodal LLM Road Safety Platform")
+
+    # Create a text input field to enter the Gemini API key
+    api_key = st.text_input("Enter your Gemini API key:", type="password")
+
+    # Check if an API key has been entered
+    if api_key:
+        # Set the API key as an environment variable
+        os.environ['GEMINI_API_KEY'] = api_key
+        
+        # Configure the genai library with the provided API key
+        genai.configure(api_key=os.environ['GEMINI_API_KEY'])
+        
+        # Display a success message to indicate that the API key has been set successfully
+        st.success("API key set successfully!")
+    else:
+        # Display a warning message to prompt the user to enter their API key
+        st.warning("Please enter your API key to proceed.")
+
     # Check if GEMINI_API_KEY environment variable is set
     if os.getenv("GEMINI_API_KEY") is None:
         # If not set, print an error message and exit
@@ -63,9 +90,10 @@ def main():
 
     # Prompt the user to enter a prompt for the AI
     prompt = input("Enter your prompt for the AI: ")
-    
+
     # Prompt the user to enter the path to an image file
-    image_path = input("Enter the path to the image (or press Enter to skip): ").strip()
+    image_path = input(
+        "Enter the path to the image (or press Enter to skip): ").strip()
 
     # If an image path is provided
     if image_path:
