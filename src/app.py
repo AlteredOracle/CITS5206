@@ -6,6 +6,7 @@ from utils import apply_distortion, get_gemini_response
 import traceback
 import pandas as pd
 
+
 # Set page configuration
 st.set_page_config(page_title="Multimodal LLM Road Safety Platform", layout="wide")
 
@@ -135,9 +136,121 @@ if api_key:
             else:
                 uploaded_files = []
 
+        # Clear all image settings if the number of files changes
+        if 'previous_file_count' not in st.session_state:
+            st.session_state.previous_file_count = 0
+        
+        if len(uploaded_files) != st.session_state.previous_file_count:
+            st.session_state.image_settings = []
+            st.session_state.previous_file_count = len(uploaded_files)
+        
+        # Create or update image settings
+        if 'image_settings' not in st.session_state:
+            st.session_state.image_settings = []
+        
         if uploaded_files:
-            st.success(f"Successfully loaded {len(uploaded_files)} images for bulk analysis.")
-        else:
-            st.warning("No images loaded for bulk analysis.")
+            # Ensure image_settings has the same length as uploaded_files
+            while len(st.session_state.image_settings) < len(uploaded_files):
+                st.session_state.image_settings.append({
+                    "distortion": "None",
+                    "intensity": 0.5,
+                    "input_text": ""
+                })
+            
+            # Remove extra settings if files were removed
+            st.session_state.image_settings = st.session_state.image_settings[:len(uploaded_files)]
+            
+            for i, (file, settings) in enumerate(zip(uploaded_files, st.session_state.image_settings)):
+                file_name = file.name if hasattr(file, 'name') else os.path.basename(file)
+                with st.expander(f"Settings for {file_name}", expanded=True):
+                    col1, col2 = st.columns([1, 2])
+                    
+                    with col1:
+                        # Load and process image
+                        image = Image.open(file) if isinstance(file, str) else Image.open(file)
+                        processed_image = apply_distortion(
+                            image, 
+                            settings["distortion"],
+                            settings["intensity"]
+                        )
+                        st.image(processed_image, caption=f"Preview: {file_name}", use_column_width=True)
+                    
+                    with col2:
+                        # Distortion selection
+                        settings["distortion"] = st.selectbox(
+                            "Distortion",
+                            ["None", "Blur", "Brightness", "Contrast", "Sharpness", "Color", "Rain", "Warp"],
+                            key=f"distortion_{i}",
+                            index=["None", "Blur", "Brightness", "Contrast", "Sharpness", "Color", "Rain", "Warp"].index(settings["distortion"])
+                        )
+                        
+                        # Intensity slider
+                        settings["intensity"] = st.slider(
+                            "Intensity", 
+                            0.0, 1.0, 
+                            settings["intensity"],
+                            key=f"intensity_{i}"
+                        )
+                        
+                        # Input text
+                        settings["input_text"] = st.text_input(
+                            "Input text", 
+                            value=settings["input_text"],
+                            key=f"input_{i}"
+                        )
+        
+        # Button to start bulk analysis
+        if st.button("Run Bulk Analysis") and uploaded_files:
+            results = []
+            progress_bar = st.progress(0)
+            
+            for i, (file, settings) in enumerate(zip(uploaded_files, st.session_state.image_settings)):
+                try:
+                    image = Image.open(file) if isinstance(file, str) else Image.open(file)
+                    file_name = file.name if hasattr(file, 'name') else os.path.basename(file)
+                    
+                    # Apply distortion
+                    processed_image = apply_distortion(image, settings["distortion"], settings["intensity"])
+                    
+                    # Get AI response
+                    response = get_gemini_response(settings["input_text"], processed_image, model_choice)
+                    
+                    # Add result to list
+                    results.append({
+                        "Image": file_name,
+                        "Distortion": settings["distortion"],
+                        "Intensity": settings["intensity"],
+                        "Input Text": settings["input_text"],
+                        "AI Response": response
+                    })
+                    
+                    # Show AI response
+                    st.write(f"AI Response for {file_name}:")
+                    st.write(response)
+                    st.markdown("---")  # Add a separator between images
+                    
+                except Exception as e:
+                    st.error(f"Error processing {file_name}: {str(e)}")
+                
+                progress_bar.progress((i + 1) / len(uploaded_files))
+            
+            if results:
+                results_df = pd.DataFrame(results)
+                st.subheader("Analysis Results")
+                st.dataframe(results_df)
+                
+                # Convert DataFrame to CSV
+                csv = results_df.to_csv(index=False)
+                st.download_button(
+                    label="Download CSV",
+                    data=csv,
+                    file_name="bulk_analysis_results.csv",
+                    mime="text/csv",
+                )
+            else:
+                st.warning("No results were generated. Please check your inputs and try again.")
+        elif not uploaded_files:
+            st.warning("Please upload at least one image or specify a valid folder path to proceed with bulk analysis.")
+
 else:
     st.warning("Please enter your API key to proceed.")
