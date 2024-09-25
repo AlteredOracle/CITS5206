@@ -47,20 +47,28 @@ def apply_overlay(image, intensity, overlay_image):
     if overlay_image is None:
         return image
     
-    overlay = Image.open(io.BytesIO(overlay_image.read())).convert("RGBA")
-    overlay = overlay.resize(image.size)
-    
-    # Create a new image with the same size as the original
-    result = Image.new("RGBA", image.size)
-    
-    # Paste the original image
-    result.paste(image.convert("RGBA"), (0, 0))
-    
-    # Apply the overlay with the given intensity
-    overlay = Image.blend(Image.new("RGBA", image.size, (0, 0, 0, 0)), overlay, intensity)
-    result = Image.alpha_composite(result, overlay)
-    
-    return result.convert("RGB")
+    try:
+        if isinstance(overlay_image, Image.Image):
+            overlay = overlay_image.convert("RGBA")
+        else:
+            overlay = Image.open(overlay_image).convert("RGBA")
+        
+        overlay = overlay.resize(image.size)
+        
+        # Create a new image with the same size as the original
+        result = Image.new("RGBA", image.size)
+        
+        # Paste the original image
+        result.paste(image.convert("RGBA"), (0, 0))
+        
+        # Apply the overlay with the given intensity
+        overlay = Image.blend(Image.new("RGBA", image.size, (0, 0, 0, 0)), overlay, intensity)
+        result = Image.alpha_composite(result, overlay)
+        
+        return result.convert("RGB")
+    except Exception as e:
+        print(f"Error applying overlay: {str(e)}")
+        return image  # Return the original image if there's an error
 
 def apply_warp_effect(image, intensity, warp_params):
     try:
