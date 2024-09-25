@@ -7,7 +7,7 @@ import traceback
 import pandas as pd
 from io import StringIO
 
-# This must be the absolute first Streamlit command
+# Set page configuration
 st.set_page_config(page_title="Multimodal LLM Road Safety Platform", layout="wide")
 
 # Define your CSS
