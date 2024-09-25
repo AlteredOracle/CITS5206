@@ -7,10 +7,47 @@ import traceback
 import pandas as pd
 from io import StringIO
 
-# Set page configuration
+# This must be the absolute first Streamlit command
 st.set_page_config(page_title="Multimodal LLM Road Safety Platform", layout="wide")
 
-# Sidebar for settings
+# Define your CSS
+css = """
+<style>
+    .stTextArea textarea {
+        font-size: 1rem;
+        padding-top: 0;
+        margin-top: 0;
+    }
+    .stTextArea div[data-baseweb="textarea"] {
+        margin-top: 0;
+    }
+</style>
+"""
+
+# Apply the CSS
+st.markdown(css, unsafe_allow_html=True)
+
+# Initialize session state variables
+if 'use_system_instructions' not in st.session_state:
+    st.session_state.use_system_instructions = True
+
+if 'system_instructions' not in st.session_state:
+    st.session_state.system_instructions = """
+    You are an AI assistant specialized in analyzing road safety images. Your task is to:
+    1. Describe the scene(s) objectively, noting visible road features, signage, and potential hazards.
+    2. Identify potential safety issues or concerns based on what you can see in the image(s).
+    3. Suggest improvements or preventive measures for any identified issues.
+    4. Comment on the overall safety of the scene(s) depicted.
+    5. If multiple images are provided, note any significant differences or patterns, but do not assume they are necessarily sequential or related unless explicitly stated.
+    6. Analyze each image individually, whether it's a single frame or part of a set.
+    7. If any distortions or unusual visual effects are present, mention them only if they are clearly visible and relevant to safety analysis.
+    Please provide your analysis in a clear, concise manner, focusing on road safety aspects. Adapt your response to the number and nature of the images provided.
+    """
+
+# Rest of your app code starts here
+st.title("Multimodal LLM Road Safety Platform")
+
+# Sidebar
 st.sidebar.title("Settings")
 
 model_choice = st.sidebar.selectbox(
@@ -18,7 +55,20 @@ model_choice = st.sidebar.selectbox(
     ["gemini-1.5-flash-latest", "gemini-1.5-pro"]
 )
 
-st.title("Multimodal LLM Road Safety Platform")
+st.sidebar.subheader("System Instructions")
+
+# Add the toggle button
+st.session_state.use_system_instructions = st.sidebar.toggle("Use System Instructions", value=st.session_state.use_system_instructions)
+
+# Only show the text area if system instructions are enabled
+if st.session_state.use_system_instructions:
+    st.session_state.system_instructions = st.sidebar.text_area(
+        "Customize AI Instructions",
+        st.session_state.system_instructions,
+        height=200
+    )
+else:
+    st.sidebar.info("System instructions are disabled.")
 
 api_key = st.text_input("Enter your Gemini API key:", type="password")
 
@@ -83,7 +133,12 @@ if api_key:
         if submit:
             if input_text or processed_image:
                 try:
-                    response = get_gemini_response(input_text, processed_image, model_choice)
+                    response = get_gemini_response(
+                        input_text, 
+                        processed_image, 
+                        model_choice, 
+                        st.session_state.system_instructions if st.session_state.use_system_instructions else None
+                    )
                     
                     st.subheader("User Input")
                     st.write(input_text if input_text else "[No text input]")
@@ -208,7 +263,7 @@ if api_key:
                         if settings["distortion"] == "Warp":
                             settings["warp_params"]["wave_amplitude"] = st.slider("Wave Amplitude", 0.0, 50.0, settings["warp_params"]["wave_amplitude"], key=f"wave_amplitude_{i}")
                             settings["warp_params"]["wave_frequency"] = st.slider("Wave Frequency", 0.0, 0.1, settings["warp_params"]["wave_frequency"], key=f"wave_frequency_{i}")
-                            settings["warp_params"]["bulge_factor"] = st.slider("Bulge Factor", -50.0, 50.0, settings["warp_params"]["bulge_factor"], key=f"bulge_factor_{i}")
+                            settings["warp_params"]["bulge_factor"] = st.slider("Bulge Frequency", -50.0, 50.0, settings["warp_params"]["bulge_factor"], key=f"bulge_factor_{i}")
                         
                         # Input text
                         settings["input_text"] = st.text_input(
@@ -237,7 +292,12 @@ if api_key:
                     )
                     
                     # Get AI response
-                    response = get_gemini_response(settings["input_text"], processed_image, model_choice)
+                    response = get_gemini_response(
+                        settings["input_text"], 
+                        processed_image, 
+                        model_choice, 
+                        st.session_state.system_instructions if st.session_state.use_system_instructions else None
+                    )
                     
                     # Add result to list
                     results.append({
