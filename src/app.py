@@ -7,18 +7,30 @@ import traceback
 import pandas as pd
 from io import StringIO
 
-# Set page configuration
+# This must be the absolute first Streamlit command
 st.set_page_config(page_title="Multimodal LLM Road Safety Platform", layout="wide")
 
-# Sidebar for settings
-st.sidebar.title("Settings")
+# Define your CSS
+css = """
+<style>
+    .stTextArea textarea {
+        font-size: 1rem;
+        padding-top: 0;
+        margin-top: 0;
+    }
+    .stTextArea div[data-baseweb="textarea"] {
+        margin-top: 0;
+    }
+</style>
+"""
 
-model_choice = st.sidebar.selectbox(
-    "Choose Model:",
-    ["gemini-1.5-flash-latest", "gemini-1.5-pro"]
-)
+# Apply the CSS
+st.markdown(css, unsafe_allow_html=True)
 
-# Add this near the top of the file, where other session state variables are initialized
+# Initialize session state variables
+if 'use_system_instructions' not in st.session_state:
+    st.session_state.use_system_instructions = True
+
 if 'system_instructions' not in st.session_state:
     st.session_state.system_instructions = """
     You are an AI assistant specialized in analyzing road safety images. Your task is to:
@@ -32,15 +44,31 @@ if 'system_instructions' not in st.session_state:
     Please provide your analysis in a clear, concise manner, focusing on road safety aspects. Adapt your response to the number and nature of the images provided.
     """
 
-# Add this in the sidebar, after the model selection
-st.sidebar.subheader("System Instructions")
-st.session_state.system_instructions = st.sidebar.text_area(
-    "Customize AI Instructions",
-    st.session_state.system_instructions,
-    height=200
+# Rest of your app code starts here
+st.title("Multimodal LLM Road Safety Platform")
+
+# Sidebar
+st.sidebar.title("Settings")
+
+model_choice = st.sidebar.selectbox(
+    "Choose Model:",
+    ["gemini-1.5-flash-latest", "gemini-1.5-pro"]
 )
 
-st.title("Multimodal LLM Road Safety Platform")
+st.sidebar.subheader("System Instructions")
+
+# Add the toggle button
+st.session_state.use_system_instructions = st.sidebar.toggle("Use System Instructions", value=st.session_state.use_system_instructions)
+
+# Only show the text area if system instructions are enabled
+if st.session_state.use_system_instructions:
+    st.session_state.system_instructions = st.sidebar.text_area(
+        "Customize AI Instructions",
+        st.session_state.system_instructions,
+        height=200
+    )
+else:
+    st.sidebar.info("System instructions are disabled.")
 
 api_key = st.text_input("Enter your Gemini API key:", type="password")
 
@@ -105,7 +133,12 @@ if api_key:
         if submit:
             if input_text or processed_image:
                 try:
-                    response = get_gemini_response(input_text, processed_image, model_choice, st.session_state.system_instructions)
+                    response = get_gemini_response(
+                        input_text, 
+                        processed_image, 
+                        model_choice, 
+                        st.session_state.system_instructions if st.session_state.use_system_instructions else None
+                    )
                     
                     st.subheader("User Input")
                     st.write(input_text if input_text else "[No text input]")
@@ -230,7 +263,7 @@ if api_key:
                         if settings["distortion"] == "Warp":
                             settings["warp_params"]["wave_amplitude"] = st.slider("Wave Amplitude", 0.0, 50.0, settings["warp_params"]["wave_amplitude"], key=f"wave_amplitude_{i}")
                             settings["warp_params"]["wave_frequency"] = st.slider("Wave Frequency", 0.0, 0.1, settings["warp_params"]["wave_frequency"], key=f"wave_frequency_{i}")
-                            settings["warp_params"]["bulge_factor"] = st.slider("Bulge Factor", -50.0, 50.0, settings["warp_params"]["bulge_factor"], key=f"bulge_factor_{i}")
+                            settings["warp_params"]["bulge_factor"] = st.slider("Bulge Frequency", -50.0, 50.0, settings["warp_params"]["bulge_factor"], key=f"bulge_factor_{i}")
                         
                         # Input text
                         settings["input_text"] = st.text_input(
@@ -259,7 +292,12 @@ if api_key:
                     )
                     
                     # Get AI response
-                    response = get_gemini_response(settings["input_text"], processed_image, model_choice, st.session_state.system_instructions)
+                    response = get_gemini_response(
+                        settings["input_text"], 
+                        processed_image, 
+                        model_choice, 
+                        st.session_state.system_instructions if st.session_state.use_system_instructions else None
+                    )
                     
                     # Add result to list
                     results.append({

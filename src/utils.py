@@ -134,19 +134,18 @@ def get_gemini_response(input_text, image, model_name, system_instructions):
         img_byte_arr = None
     
     try:
-        if input_text and img_byte_arr:
-            response = model.generate_content([
-                system_instructions,
-                input_text,
-                {"mime_type": "image/png", "data": img_byte_arr}
-            ])
-        elif input_text:
-            response = model.generate_content([system_instructions, input_text])
-        elif img_byte_arr:
-            response = model.generate_content([
-                system_instructions,
-                {"mime_type": "image/png", "data": img_byte_arr}
-            ])
-        return response.text if response else "No response from the model."
+        content = []
+        if system_instructions:
+            content.append(system_instructions)
+        if input_text:
+            content.append(input_text)
+        if img_byte_arr:
+            content.append({"mime_type": "image/png", "data": img_byte_arr})
+        
+        if content:
+            response = model.generate_content(content)
+            return response.text if response else "No response from the model."
+        else:
+            return "No input provided to the model."
     except Exception as e:
         return f"Error generating response: {str(e)}"
