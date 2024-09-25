@@ -18,6 +18,28 @@ model_choice = st.sidebar.selectbox(
     ["gemini-1.5-flash-latest", "gemini-1.5-pro"]
 )
 
+# Add this near the top of the file, where other session state variables are initialized
+if 'system_instructions' not in st.session_state:
+    st.session_state.system_instructions = """
+    You are an AI assistant specialized in analyzing road safety images. Your task is to:
+    1. Describe the scene(s) objectively, noting visible road features, signage, and potential hazards.
+    2. Identify potential safety issues or concerns based on what you can see in the image(s).
+    3. Suggest improvements or preventive measures for any identified issues.
+    4. Comment on the overall safety of the scene(s) depicted.
+    5. If multiple images are provided, note any significant differences or patterns, but do not assume they are necessarily sequential or related unless explicitly stated.
+    6. Analyze each image individually, whether it's a single frame or part of a set.
+    7. If any distortions or unusual visual effects are present, mention them only if they are clearly visible and relevant to safety analysis.
+    Please provide your analysis in a clear, concise manner, focusing on road safety aspects. Adapt your response to the number and nature of the images provided.
+    """
+
+# Add this in the sidebar, after the model selection
+st.sidebar.subheader("System Instructions")
+st.session_state.system_instructions = st.sidebar.text_area(
+    "Customize AI Instructions",
+    st.session_state.system_instructions,
+    height=200
+)
+
 st.title("Multimodal LLM Road Safety Platform")
 
 api_key = st.text_input("Enter your Gemini API key:", type="password")
@@ -83,7 +105,7 @@ if api_key:
         if submit:
             if input_text or processed_image:
                 try:
-                    response = get_gemini_response(input_text, processed_image, model_choice)
+                    response = get_gemini_response(input_text, processed_image, model_choice, st.session_state.system_instructions)
                     
                     st.subheader("User Input")
                     st.write(input_text if input_text else "[No text input]")
@@ -237,7 +259,7 @@ if api_key:
                     )
                     
                     # Get AI response
-                    response = get_gemini_response(settings["input_text"], processed_image, model_choice)
+                    response = get_gemini_response(settings["input_text"], processed_image, model_choice, st.session_state.system_instructions)
                     
                     # Add result to list
                     results.append({

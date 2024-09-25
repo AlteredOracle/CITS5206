@@ -115,7 +115,7 @@ def apply_warp_effect(image, intensity, warp_params):
         print(traceback.format_exc())
         return image  # Return the original image if there's an error
 
-def get_gemini_response(input_text, image, model_name):
+def get_gemini_response(input_text, image, model_name, system_instructions):
     model = genai.GenerativeModel(model_name)
     response = None
     
@@ -135,11 +135,18 @@ def get_gemini_response(input_text, image, model_name):
     
     try:
         if input_text and img_byte_arr:
-            response = model.generate_content([input_text, {"mime_type": "image/png", "data": img_byte_arr}])
+            response = model.generate_content([
+                system_instructions,
+                input_text,
+                {"mime_type": "image/png", "data": img_byte_arr}
+            ])
         elif input_text:
-            response = model.generate_content([input_text])
+            response = model.generate_content([system_instructions, input_text])
         elif img_byte_arr:
-            response = model.generate_content([{"mime_type": "image/png", "data": img_byte_arr}])
+            response = model.generate_content([
+                system_instructions,
+                {"mime_type": "image/png", "data": img_byte_arr}
+            ])
         return response.text if response else "No response from the model."
     except Exception as e:
         return f"Error generating response: {str(e)}"
