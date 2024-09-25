@@ -154,7 +154,8 @@ if api_key:
                 st.session_state.image_settings.append({
                     "distortion": "None",
                     "intensity": 0.5,
-                    "input_text": ""
+                    "input_text": "",
+                    "overlay_image": None  # Add this line
                 })
             
             # Remove extra settings if files were removed
@@ -171,7 +172,8 @@ if api_key:
                         processed_image = apply_distortion(
                             image, 
                             settings["distortion"],
-                            settings["intensity"]
+                            settings["intensity"],
+                            settings["overlay_image"]  # Add this line
                         )
                         st.image(processed_image, caption=f"Preview: {file_name}", use_column_width=True)
                     
@@ -179,9 +181,9 @@ if api_key:
                         # Distortion selection
                         settings["distortion"] = st.selectbox(
                             "Distortion",
-                            ["None", "Blur", "Brightness", "Contrast", "Sharpness", "Color", "Rain", "Warp"],
+                            ["None", "Blur", "Brightness", "Contrast", "Sharpness", "Color", "Rain", "Overlay", "Warp"],  # Add "Overlay" here
                             key=f"distortion_{i}",
-                            index=["None", "Blur", "Brightness", "Contrast", "Sharpness", "Color", "Rain", "Warp"].index(settings["distortion"])
+                            index=["None", "Blur", "Brightness", "Contrast", "Sharpness", "Color", "Rain", "Overlay", "Warp"].index(settings["distortion"])
                         )
                         
                         # Intensity slider
@@ -191,6 +193,10 @@ if api_key:
                             settings["intensity"],
                             key=f"intensity_{i}"
                         )
+                        
+                        # Overlay image uploader
+                        if settings["distortion"] == "Overlay":
+                            settings["overlay_image"] = st.file_uploader("Upload overlay image", type=["png", "jpg", "jpeg"], key=f"overlay_{i}")
                         
                         # Input text
                         settings["input_text"] = st.text_input(
@@ -210,7 +216,7 @@ if api_key:
                     file_name = file.name if hasattr(file, 'name') else os.path.basename(file)
                     
                     # Apply distortion
-                    processed_image = apply_distortion(image, settings["distortion"], settings["intensity"])
+                    processed_image = apply_distortion(image, settings["distortion"], settings["intensity"], settings["overlay_image"])
                     
                     # Get AI response
                     response = get_gemini_response(settings["input_text"], processed_image, model_choice)
