@@ -155,7 +155,12 @@ if api_key:
                     "distortion": "None",
                     "intensity": 0.5,
                     "input_text": "",
-                    "overlay_image": None  # Add this line
+                    "overlay_image": None,
+                    "warp_params": {
+                        "wave_amplitude": 20.0,
+                        "wave_frequency": 0.04,
+                        "bulge_factor": 30.0
+                    }
                 })
             
             # Remove extra settings if files were removed
@@ -173,7 +178,8 @@ if api_key:
                             image, 
                             settings["distortion"],
                             settings["intensity"],
-                            settings["overlay_image"]  # Add this line
+                            settings["overlay_image"],
+                            settings["warp_params"]
                         )
                         st.image(processed_image, caption=f"Preview: {file_name}", use_column_width=True)
                     
@@ -181,7 +187,7 @@ if api_key:
                         # Distortion selection
                         settings["distortion"] = st.selectbox(
                             "Distortion",
-                            ["None", "Blur", "Brightness", "Contrast", "Sharpness", "Color", "Rain", "Overlay", "Warp"],  # Add "Overlay" here
+                            ["None", "Blur", "Brightness", "Contrast", "Sharpness", "Color", "Rain", "Overlay", "Warp"],
                             key=f"distortion_{i}",
                             index=["None", "Blur", "Brightness", "Contrast", "Sharpness", "Color", "Rain", "Overlay", "Warp"].index(settings["distortion"])
                         )
@@ -197,6 +203,12 @@ if api_key:
                         # Overlay image uploader
                         if settings["distortion"] == "Overlay":
                             settings["overlay_image"] = st.file_uploader("Upload overlay image", type=["png", "jpg", "jpeg"], key=f"overlay_{i}")
+                        
+                        # Warp parameters
+                        if settings["distortion"] == "Warp":
+                            settings["warp_params"]["wave_amplitude"] = st.slider("Wave Amplitude", 0.0, 50.0, settings["warp_params"]["wave_amplitude"], key=f"wave_amplitude_{i}")
+                            settings["warp_params"]["wave_frequency"] = st.slider("Wave Frequency", 0.0, 0.1, settings["warp_params"]["wave_frequency"], key=f"wave_frequency_{i}")
+                            settings["warp_params"]["bulge_factor"] = st.slider("Bulge Factor", -50.0, 50.0, settings["warp_params"]["bulge_factor"], key=f"bulge_factor_{i}")
                         
                         # Input text
                         settings["input_text"] = st.text_input(
@@ -216,7 +228,13 @@ if api_key:
                     file_name = file.name if hasattr(file, 'name') else os.path.basename(file)
                     
                     # Apply distortion
-                    processed_image = apply_distortion(image, settings["distortion"], settings["intensity"], settings["overlay_image"])
+                    processed_image = apply_distortion(
+                        image, 
+                        settings["distortion"], 
+                        settings["intensity"], 
+                        settings["overlay_image"], 
+                        settings["warp_params"]
+                    )
                     
                     # Get AI response
                     response = get_gemini_response(settings["input_text"], processed_image, model_choice)
