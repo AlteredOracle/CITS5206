@@ -44,15 +44,36 @@ if 'system_instructions' not in st.session_state:
     Please provide your analysis in a clear, concise manner, focusing on road safety aspects. Adapt your response to the number and nature of the images provided.
     """
 
+if 'api_key' not in st.session_state:
+    st.session_state.api_key = ""
+
+if 'model_choice' not in st.session_state:
+    st.session_state.model_choice = "gemini-1.5-flash-latest"
+
+# Add this near the top of your file, after the imports
+PREDEFINED_PROMPTS = [
+    "Analyze the road safety features visible in this image.",
+    "Identify potential hazards for pedestrians in this scene.",
+    "Evaluate the effectiveness of traffic signs and signals in this image.",
+    "Assess the road conditions and suggest improvements for safety.",
+    "Examine the intersection design and comment on its safety aspects.",
+    "Identify any issues with road markings or lane divisions.",
+    "Analyze the safety considerations for cyclists in this environment.",
+    "Evaluate the lighting conditions and their impact on road safety.",
+    "Assess the visibility and placement of traffic lights in this scene.",
+    "Identify any potential blind spots or visual obstructions for drivers.",
+]
+
 # Rest of your app code starts here
 st.title("Multimodal LLM Road Safety Platform")
 
 # Sidebar
 st.sidebar.title("Settings")
 
-model_choice = st.sidebar.selectbox(
+st.session_state.model_choice = st.sidebar.selectbox(
     "Choose Model:",
-    ["gemini-1.5-flash-latest", "gemini-1.5-pro"]
+    ["gemini-1.5-flash-latest", "gemini-1.5-pro"],
+    index=["gemini-1.5-flash-latest", "gemini-1.5-pro"].index(st.session_state.model_choice)
 )
 
 st.sidebar.subheader("System Instructions")
@@ -70,10 +91,10 @@ if st.session_state.use_system_instructions:
 else:
     st.sidebar.info("System instructions are disabled.")
 
-api_key = st.text_input("Enter your Gemini API key:", type="password")
+st.session_state.api_key = st.text_input("Enter your Gemini API key:", type="password", value=st.session_state.api_key)
 
-if api_key:
-    os.environ['GEMINI_API_KEY'] = api_key
+if st.session_state.api_key:
+    os.environ['GEMINI_API_KEY'] = st.session_state.api_key
     genai.configure(api_key=os.environ['GEMINI_API_KEY'])
 
     # Add a new option in the sidebar for analysis mode
@@ -102,7 +123,13 @@ if api_key:
             intensity = 1.0
             overlay_image = None
 
-        input_text = st.text_input("Input Prompt:", key="input")
+        prompt_option = st.radio("Choose prompt type:", ["Predefined", "Custom"])
+        
+        if prompt_option == "Predefined":
+            input_text = st.selectbox("Select a predefined prompt:", PREDEFINED_PROMPTS)
+        else:
+            input_text = st.text_input("Input Custom Prompt:", key="input")
+
         uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
         image = None
@@ -136,7 +163,7 @@ if api_key:
                     response = get_gemini_response(
                         input_text, 
                         processed_image, 
-                        model_choice, 
+                        st.session_state.model_choice, 
                         st.session_state.system_instructions if st.session_state.use_system_instructions else None
                     )
                     
@@ -263,14 +290,22 @@ if api_key:
                         if settings["distortion"] == "Warp":
                             settings["warp_params"]["wave_amplitude"] = st.slider("Wave Amplitude", 0.0, 50.0, settings["warp_params"]["wave_amplitude"], key=f"wave_amplitude_{i}")
                             settings["warp_params"]["wave_frequency"] = st.slider("Wave Frequency", 0.0, 0.1, settings["warp_params"]["wave_frequency"], key=f"wave_frequency_{i}")
-                            settings["warp_params"]["bulge_factor"] = st.slider("Bulge Frequency", -50.0, 50.0, settings["warp_params"]["bulge_factor"], key=f"bulge_factor_{i}")
+                            settings["warp_params"]["bulge_factor"] = st.slider("Bulge Factor", -50.0, 50.0, settings["warp_params"]["bulge_factor"], key=f"bulge_factor_{i}")
                         
                         # Input text
-                        settings["input_text"] = st.text_input(
-                            "Input text", 
-                            value=settings["input_text"],
-                            key=f"input_{i}"
-                        )
+                        prompt_option = st.radio("Choose prompt type:", ["Predefined", "Custom"], key=f"prompt_option_{i}")
+                        if prompt_option == "Predefined":
+                            settings["input_text"] = st.selectbox(
+                                "Select a predefined prompt:", 
+                                PREDEFINED_PROMPTS,
+                                key=f"predefined_prompt_{i}"
+                            )
+                        else:
+                            settings["input_text"] = st.text_input(
+                                "Input custom text", 
+                                value=settings["input_text"],
+                                key=f"input_{i}"
+                            )
         
         # Button to start bulk analysis
         if st.button("Run Bulk Analysis") and uploaded_files:
@@ -295,7 +330,7 @@ if api_key:
                     response = get_gemini_response(
                         settings["input_text"], 
                         processed_image, 
-                        model_choice, 
+                        st.session_state.model_choice, 
                         st.session_state.system_instructions if st.session_state.use_system_instructions else None
                     )
                     
