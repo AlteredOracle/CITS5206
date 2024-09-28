@@ -6,8 +6,19 @@ import numpy as np
 from scipy.ndimage import map_coordinates
 import traceback
 
-def apply_distortion(image, distortion_type, intensity, overlay_image=None, warp_params=None):
-    if distortion_type == "Blur":
+def apply_distortion(image, distortion_type, intensity=None, overlay_image=None, warp_params=None, saturation=None, hue_shift=None):
+    print(f"Applying distortion: {distortion_type}")  # Debug print
+    if distortion_type == "Color":
+        if saturation is not None:
+            enhancer = ImageEnhance.Color(image)
+            image = enhancer.enhance(saturation)
+        
+        if hue_shift is not None:
+            image = shift_hue(image, hue_shift)
+        
+        print(f"Color distortion applied. Original size: {image.size}, Distorted size: {image.size}")  # Debug print
+        return image
+    elif distortion_type == "Blur":
         return image.filter(ImageFilter.GaussianBlur(radius=intensity * 10))
     elif distortion_type == "Brightness":
         enhancer = ImageEnhance.Brightness(image)
@@ -17,10 +28,7 @@ def apply_distortion(image, distortion_type, intensity, overlay_image=None, warp
         return enhancer.enhance(1 + intensity)
     elif distortion_type == "Sharpness":
         enhancer = ImageEnhance.Sharpness(image)
-        return enhancer.enhance(1 + intensity)
-    elif distortion_type == "Color":
-        enhancer = ImageEnhance.Color(image)
-        return enhancer.enhance(1 + intensity)
+        return enhancer.enhance(1 + (intensity * 4))
     elif distortion_type == "Rain":
         return apply_rain_effect(image, intensity)
     elif distortion_type == "Overlay":
@@ -28,6 +36,12 @@ def apply_distortion(image, distortion_type, intensity, overlay_image=None, warp
     elif distortion_type == "Warp":
         return apply_warp_effect(image, intensity, warp_params)
     return image
+
+def shift_hue(image, amount):
+    img_hsv = image.convert('HSV')
+    h, s, v = img_hsv.split()
+    h = h.point(lambda x: (x + amount * 255) % 255)
+    return Image.merge('HSV', (h, s, v)).convert('RGB')
 
 def apply_rain_effect(image, intensity):
     overlay = Image.new('RGBA', image.size, (255, 255, 255, 0))
