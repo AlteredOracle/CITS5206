@@ -6,35 +6,35 @@ import numpy as np
 from scipy.ndimage import map_coordinates
 import traceback
 
-def apply_distortion(image, distortion_type, intensity=None, overlay_image=None, warp_params=None, saturation=None, hue_shift=None):
-    print(f"Applying distortion: {distortion_type}")  # Debug print
-    if distortion_type == "Color":
-        if saturation is not None:
+def apply_distortion(image, type, **params):
+    print(f"Applying distortion: {type}")  # Debug print
+    if type == "Color":
+        if "saturation" in params:
             enhancer = ImageEnhance.Color(image)
-            image = enhancer.enhance(saturation)
+            image = enhancer.enhance(params["saturation"])
         
-        if hue_shift is not None:
-            image = shift_hue(image, hue_shift)
+        if "hue_shift" in params:
+            image = shift_hue(image, params["hue_shift"])
         
         print(f"Color distortion applied. Original size: {image.size}, Distorted size: {image.size}")  # Debug print
         return image
-    elif distortion_type == "Blur":
-        return image.filter(ImageFilter.GaussianBlur(radius=intensity * 10))
-    elif distortion_type == "Brightness":
+    elif type == "Blur":
+        return image.filter(ImageFilter.GaussianBlur(radius=params.get("intensity", 0) * 10))
+    elif type == "Brightness":
         enhancer = ImageEnhance.Brightness(image)
-        return enhancer.enhance(1 + intensity)
-    elif distortion_type == "Contrast":
+        return enhancer.enhance(1 + params.get("intensity", 0))
+    elif type == "Contrast":
         enhancer = ImageEnhance.Contrast(image)
-        return enhancer.enhance(1 + intensity)
-    elif distortion_type == "Sharpness":
+        return enhancer.enhance(1 + params.get("intensity", 0))
+    elif type == "Sharpness":
         enhancer = ImageEnhance.Sharpness(image)
-        return enhancer.enhance(1 + (intensity * 4))
-    elif distortion_type == "Rain":
-        return apply_rain_effect(image, intensity)
-    elif distortion_type == "Overlay":
-        return apply_overlay(image, intensity, overlay_image)
-    elif distortion_type == "Warp":
-        return apply_warp_effect(image, intensity, warp_params)
+        return enhancer.enhance(1 + (params.get("intensity", 0) * 4))
+    elif type == "Rain":
+        return apply_rain_effect(image, params.get("intensity", 0))
+    elif type == "Overlay":
+        return apply_overlay(image, params.get("intensity", 0), params.get("overlay_image", None))
+    elif type == "Warp":
+        return apply_warp_effect(image, params.get("intensity", 0), params.get("warp_params", None))
     return image
 
 def shift_hue(image, amount):
@@ -128,6 +128,11 @@ def apply_warp_effect(image, intensity, warp_params):
         print(f"Error in apply_warp_effect: {str(e)}")
         print(traceback.format_exc())
         return image  # Return the original image if there's an error
+
+def apply_distortions(image, distortions):
+    for distortion in distortions:
+        image = apply_distortion(image, **distortion)
+    return image
 
 def get_gemini_response(input_text, image, model_name, system_instructions):
     model = genai.GenerativeModel(model_name)

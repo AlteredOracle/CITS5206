@@ -2,7 +2,7 @@ import streamlit as st
 import os
 from PIL import Image
 import google.generativeai as genai
-from utils import apply_distortion, get_gemini_response
+from utils import apply_distortions, get_gemini_response
 import traceback
 import pandas as pd
 from io import StringIO
@@ -64,6 +64,9 @@ PREDEFINED_PROMPTS = [
     "Identify any potential blind spots or visual obstructions for drivers.",
 ]
 
+# Add this near the top of your file, after the imports
+DISTORTION_TYPES = ["None", "Blur", "Brightness", "Contrast", "Sharpness", "Color", "Rain", "Overlay", "Warp"]
+
 # Rest of your app code starts here
 st.title("Multimodal LLM Road Safety Platform")
 
@@ -103,26 +106,54 @@ if st.session_state.api_key:
     if analysis_mode == "Single":
         st.sidebar.subheader("Distortions")
 
-        distortion_type = st.sidebar.selectbox(
-            "Choose Distortion:",
-            ["None", "Blur", "Brightness", "Contrast", "Sharpness", "Color", "Rain", "Overlay", "Warp"]
+        selected_distortions = st.sidebar.multiselect(
+            "Choose Distortions:",
+            DISTORTION_TYPES[1:],  # Exclude "None" from the options
+            default=None,
+            placeholder="Choose an option"
         )
 
-        overlay_image = None
-        warp_params = {}
+        distortions = []
 
-        if distortion_type == "Color":
-            saturation = st.sidebar.slider("Color Saturation", 0.0, 2.0, 1.0)
-            hue_shift = st.sidebar.slider("Hue Shift", -0.5, 0.5, 0.0)
-        else:
-            intensity = st.sidebar.slider("Distortion Intensity", 0.0, 1.0, 0.5)
-
-        if distortion_type == "Overlay":
-            overlay_image = st.sidebar.file_uploader("Upload overlay image", type=["png", "jpg", "jpeg"])
-        elif distortion_type == "Warp":
-            warp_params['wave_amplitude'] = st.sidebar.slider("Wave Amplitude", 0.0, 50.0, 20.0)
-            warp_params['wave_frequency'] = st.sidebar.slider("Wave Frequency", 0.0, 0.1, 0.04)
-            warp_params['bulge_factor'] = st.sidebar.slider("Bulge Factor", -50.0, 50.0, 30.0)
+        if selected_distortions:
+            for distortion_type in selected_distortions:
+                with st.sidebar.expander(f"{distortion_type} Settings"):
+                    if distortion_type == "Color":
+                        saturation = st.slider(f"{distortion_type} Saturation", 0.0, 2.0, 1.0)
+                        hue_shift = st.slider(f"{distortion_type} Hue Shift", -0.5, 0.5, 0.0)
+                        distortions.append({
+                            'type': distortion_type,
+                            'saturation': saturation,
+                            'hue_shift': hue_shift
+                        })
+                    elif distortion_type == "Overlay":
+                        intensity = st.slider(f"{distortion_type} Intensity", 0.0, 1.0, 0.5)
+                        overlay_image = st.file_uploader(f"Upload {distortion_type} image", type=["png", "jpg", "jpeg"])
+                        distortions.append({
+                            'type': distortion_type,
+                            'intensity': intensity,
+                            'overlay_image': overlay_image
+                        })
+                    elif distortion_type == "Warp":
+                        intensity = st.slider(f"{distortion_type} Intensity", 0.0, 1.0, 0.5)
+                        wave_amplitude = st.slider(f"{distortion_type} Wave Amplitude", 0.0, 50.0, 20.0)
+                        wave_frequency = st.slider(f"{distortion_type} Wave Frequency", 0.0, 0.1, 0.04)
+                        bulge_factor = st.slider(f"{distortion_type} Bulge Factor", -50.0, 50.0, 30.0)
+                        distortions.append({
+                            'type': distortion_type,
+                            'intensity': intensity,
+                            'warp_params': {
+                                'wave_amplitude': wave_amplitude,
+                                'wave_frequency': wave_frequency,
+                                'bulge_factor': bulge_factor
+                            }
+                        })
+                    else:
+                        intensity = st.slider(f"{distortion_type} Intensity", 0.0, 1.0, 0.5)
+                        distortions.append({
+                            'type': distortion_type,
+                            'intensity': intensity
+                        })
 
         prompt_option = st.radio("Choose prompt type:", ["Predefined", "Custom"])
         
@@ -139,33 +170,20 @@ if st.session_state.api_key:
             try:
                 image = Image.open(uploaded_file)
                 
-                if distortion_type != "None":
-                    processed_image = apply_distortion(
-                        image, 
-                        distortion_type, 
-                        intensity if distortion_type != "Color" else None,
-                        overlay_image, 
-                        warp_params,
-                        saturation if distortion_type == "Color" else None,
-                        hue_shift if distortion_type == "Color" else None
-                    )
+                if distortions:
+                    processed_image = apply_distortions(image, distortions)
                     if processed_image is not None:
                         col1, col2 = st.columns(2)
                         with col1:
                             st.image(image, caption="Original Image", use_column_width=True)
                         with col2:
-                            caption = f"Processed Image ({distortion_type}"
-                            if distortion_type == "Color":
-                                caption += f", Saturation: {saturation:.2f}, Hue Shift: {hue_shift:.2f}"
-                            else:
-                                caption += f", Intensity: {intensity:.2f}"
-                            caption += ")"
+                            caption = f"Processed Image ({', '.join([d['type'] for d in distortions])})"
                             st.image(processed_image, caption=caption, use_column_width=True)
                     else:
                         st.error("Failed to process the image. The distortion function returned None.")
                 else:
                     st.image(image, caption="Original Image", use_column_width=True)
-                    processed_image = image  # If no distortion, use the original image
+                    processed_image = image  # If no distortions, use the original image
             except Exception as e:
                 st.error(f"An error occurred while processing the image: {str(e)}")
                 st.error(traceback.format_exc())
@@ -267,49 +285,69 @@ if st.session_state.api_key:
             
             for i, (file, settings) in enumerate(zip(uploaded_files, st.session_state.image_settings)):
                 file_name = file.name if hasattr(file, 'name') else os.path.basename(file)
+                
                 with st.expander(f"Settings for {file_name}", expanded=True):
-                    col1, col2 = st.columns([1, 2])
+                    col1, col2 = st.columns(2)
                     
                     with col1:
-                        # Load and process image
+                        # Load and display original image
                         image = Image.open(file) if isinstance(file, str) else Image.open(file)
-                        processed_image = apply_distortion(
-                            image, 
-                            settings["distortion"],
-                            settings["intensity"] if settings["distortion"] != "Color" else None,
-                            settings["overlay_image"],
-                            settings["warp_params"],
-                            settings["saturation"] if settings["distortion"] == "Color" else None,
-                            settings["hue_shift"] if settings["distortion"] == "Color" else None
-                        )
-                        st.image(processed_image, caption=f"Preview: {file_name}", use_column_width=True)
+                        st.image(image, caption="Original Image", use_column_width=True)
                     
                     with col2:
-                        # Distortion selection
-                        settings["distortion"] = st.selectbox(
-                            "Distortion",
-                            ["None", "Blur", "Brightness", "Contrast", "Sharpness", "Color", "Rain", "Overlay", "Warp"],
-                            key=f"distortion_{i}",
-                            index=["None", "Blur", "Brightness", "Contrast", "Sharpness", "Color", "Rain", "Overlay", "Warp"].index(settings["distortion"])
+                        # Multiple distortion selection
+                        settings['distortions'] = st.multiselect(
+                            "Choose Distortions:",
+                            DISTORTION_TYPES[1:],  # Exclude "None" from the options
+                            default=settings.get('distortions', []),
+                            key=f"distortions_{i}"
                         )
                         
-                        if settings["distortion"] == "Color":
-                            settings["saturation"] = st.slider("Color Saturation", 0.0, 2.0, settings["saturation"], key=f"saturation_{i}")
-                            settings["hue_shift"] = st.slider("Hue Shift", -0.5, 0.5, settings["hue_shift"], key=f"hue_shift_{i}")
-                        elif settings["distortion"] != "None":
-                            settings["intensity"] = st.slider("Intensity", 0.0, 1.0, settings["intensity"], key=f"intensity_{i}")
+                        # Distortion settings using tabs
+                        if settings['distortions']:
+                            tabs = st.tabs(settings['distortions'])
+                            for tab, distortion_type in zip(tabs, settings['distortions']):
+                                with tab:
+                                    if distortion_type == "Color":
+                                        settings[f"{distortion_type}_saturation"] = st.slider("Saturation", 0.0, 2.0, settings.get(f"{distortion_type}_saturation", 1.0), key=f"saturation_{i}_{distortion_type}")
+                                        settings[f"{distortion_type}_hue_shift"] = st.slider("Hue Shift", -0.5, 0.5, settings.get(f"{distortion_type}_hue_shift", 0.0), key=f"hue_shift_{i}_{distortion_type}")
+                                    elif distortion_type == "Overlay":
+                                        settings[f"{distortion_type}_intensity"] = st.slider("Intensity", 0.0, 1.0, settings.get(f"{distortion_type}_intensity", 0.5), key=f"intensity_{i}_{distortion_type}")
+                                        settings[f"{distortion_type}_overlay_image"] = st.file_uploader("Overlay image", type=["png", "jpg", "jpeg"], key=f"overlay_{i}_{distortion_type}")
+                                    elif distortion_type == "Warp":
+                                        settings[f"{distortion_type}_intensity"] = st.slider("Intensity", 0.0, 1.0, settings.get(f"{distortion_type}_intensity", 0.5), key=f"intensity_{i}_{distortion_type}")
+                                        settings[f"{distortion_type}_wave_amplitude"] = st.slider("Wave Amplitude", 0.0, 50.0, settings.get(f"{distortion_type}_wave_amplitude", 20.0), key=f"wave_amplitude_{i}_{distortion_type}")
+                                        settings[f"{distortion_type}_wave_frequency"] = st.slider("Wave Frequency", 0.0, 0.1, settings.get(f"{distortion_type}_wave_frequency", 0.04), key=f"wave_frequency_{i}_{distortion_type}")
+                                        settings[f"{distortion_type}_bulge_factor"] = st.slider("Bulge Factor", -50.0, 50.0, settings.get(f"{distortion_type}_bulge_factor", 30.0), key=f"bulge_factor_{i}_{distortion_type}")
+                                    else:
+                                        settings[f"{distortion_type}_intensity"] = st.slider("Intensity", 0.0, 1.0, settings.get(f"{distortion_type}_intensity", 0.5), key=f"intensity_{i}_{distortion_type}")
                         
-                        # Overlay image uploader
-                        if settings["distortion"] == "Overlay":
-                            settings["overlay_image"] = st.file_uploader("Upload overlay image", type=["png", "jpg", "jpeg"], key=f"overlay_{i}")
+                        # Apply distortions and display processed image
+                        distortions_list = []
+                        for distortion_type in settings['distortions']:
+                            distortion_params = {"type": distortion_type}
+                            if distortion_type == "Color":
+                                distortion_params["saturation"] = settings[f"{distortion_type}_saturation"]
+                                distortion_params["hue_shift"] = settings[f"{distortion_type}_hue_shift"]
+                            elif distortion_type == "Overlay":
+                                distortion_params["intensity"] = settings[f"{distortion_type}_intensity"]
+                                distortion_params["overlay_image"] = settings[f"{distortion_type}_overlay_image"]
+                            elif distortion_type == "Warp":
+                                distortion_params["intensity"] = settings[f"{distortion_type}_intensity"]
+                                distortion_params["warp_params"] = {
+                                    "wave_amplitude": settings[f"{distortion_type}_wave_amplitude"],
+                                    "wave_frequency": settings[f"{distortion_type}_wave_frequency"],
+                                    "bulge_factor": settings[f"{distortion_type}_bulge_factor"]
+                                }
+                            else:
+                                distortion_params["intensity"] = settings[f"{distortion_type}_intensity"]
+                            distortions_list.append(distortion_params)
                         
-                        # Warp parameters
-                        if settings["distortion"] == "Warp":
-                            settings["warp_params"]["wave_amplitude"] = st.slider("Wave Amplitude", 0.0, 50.0, settings["warp_params"]["wave_amplitude"], key=f"wave_amplitude_{i}")
-                            settings["warp_params"]["wave_frequency"] = st.slider("Wave Frequency", 0.0, 0.1, settings["warp_params"]["wave_frequency"], key=f"wave_frequency_{i}")
-                            settings["warp_params"]["bulge_factor"] = st.slider("Bulge Factor", -50.0, 50.0, settings["warp_params"]["bulge_factor"], key=f"bulge_factor_{i}")
+                        processed_image = apply_distortions(image, distortions_list)
+                        st.image(processed_image, caption="Processed Image", use_column_width=True)
                         
                         # Input text
+                        st.markdown("### Prompt Settings")
                         prompt_option = st.radio("Choose prompt type:", ["Predefined", "Custom"], key=f"prompt_option_{i}")
                         if prompt_option == "Predefined":
                             settings["input_text"] = st.selectbox(
@@ -320,9 +358,11 @@ if st.session_state.api_key:
                         else:
                             settings["input_text"] = st.text_input(
                                 "Input custom text", 
-                                value=settings["input_text"],
+                                value=settings.get("input_text", ""),
                                 key=f"input_{i}"
                             )
+                
+                st.markdown("---")  # Add a separator between images
         
         # Button to start bulk analysis
         if st.button("Run Bulk Analysis") and uploaded_files:
@@ -334,16 +374,28 @@ if st.session_state.api_key:
                     image = Image.open(file) if isinstance(file, str) else Image.open(file)
                     file_name = file.name if hasattr(file, 'name') else os.path.basename(file)
                     
-                    # Apply distortion
-                    processed_image = apply_distortion(
-                        image, 
-                        settings["distortion"], 
-                        settings["intensity"] if settings["distortion"] != "Color" else None,
-                        settings["overlay_image"], 
-                        settings["warp_params"],
-                        settings["saturation"] if settings["distortion"] == "Color" else None,
-                        settings["hue_shift"] if settings["distortion"] == "Color" else None
-                    )
+                    # Apply distortions
+                    distortions_list = []
+                    for distortion_type in settings["distortions"]:
+                        distortion_params = {"type": distortion_type}
+                        if distortion_type == "Color":
+                            distortion_params["saturation"] = settings[f"{distortion_type}_saturation"]
+                            distortion_params["hue_shift"] = settings[f"{distortion_type}_hue_shift"]
+                        elif distortion_type == "Overlay":
+                            distortion_params["intensity"] = settings[f"{distortion_type}_intensity"]
+                            distortion_params["overlay_image"] = settings[f"{distortion_type}_overlay_image"]
+                        elif distortion_type == "Warp":
+                            distortion_params["intensity"] = settings[f"{distortion_type}_intensity"]
+                            distortion_params["warp_params"] = {
+                                "wave_amplitude": settings[f"{distortion_type}_wave_amplitude"],
+                                "wave_frequency": settings[f"{distortion_type}_wave_frequency"],
+                                "bulge_factor": settings[f"{distortion_type}_bulge_factor"]
+                            }
+                        else:
+                            distortion_params["intensity"] = settings[f"{distortion_type}_intensity"]
+                        distortions_list.append(distortion_params)
+                    
+                    processed_image = apply_distortions(image, distortions_list)
                     
                     # Get AI response
                     response = get_gemini_response(
@@ -356,10 +408,7 @@ if st.session_state.api_key:
                     # Add result to list
                     results.append({
                         "Image": file_name,
-                        "Distortion": settings["distortion"],
-                        "Intensity": settings["intensity"] if settings["distortion"] != "Color" else None,
-                        "Saturation": settings["saturation"] if settings["distortion"] == "Color" else None,
-                        "Hue Shift": settings["hue_shift"] if settings["distortion"] == "Color" else None,
+                        "Distortions": ', '.join(settings["distortions"]),
                         "Input Text": settings["input_text"],
                         "AI Response": response
                     })
