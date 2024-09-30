@@ -5,7 +5,6 @@ import google.generativeai as genai
 from utils import apply_distortion, get_gemini_response
 import traceback
 import pandas as pd
-from io import StringIO
 
 # Set page configuration
 st.set_page_config(page_title="Multimodal LLM Road Safety Platform", layout="wide")
@@ -29,7 +28,10 @@ st.markdown(css, unsafe_allow_html=True)
 
 # Initialize session state variables
 if 'use_system_instructions' not in st.session_state:
-    st.session_state.use_system_instructions = True
+    st.session_state.use_system_instructions = False
+
+if 'show_more_image_opts' not in st.session_state:
+    st.session_state.show_more_image_opts = False
 
 if 'system_instructions' not in st.session_state:
     st.session_state.system_instructions = """
@@ -79,7 +81,9 @@ st.session_state.model_choice = st.sidebar.selectbox(
 st.sidebar.subheader("System Instructions")
 
 # Add the toggle button
-st.session_state.use_system_instructions = st.sidebar.toggle("Use System Instructions", value=st.session_state.use_system_instructions)
+st.session_state.use_system_instructions = st.sidebar.toggle(
+    "Check System Instructions", value=st.session_state.use_system_instructions
+)
 
 # Only show the text area if system instructions are enabled
 if st.session_state.use_system_instructions:
@@ -103,29 +107,65 @@ if st.session_state.api_key:
     if analysis_mode == "Single":
         st.sidebar.subheader("Distortions")
 
-        distortion_type = st.sidebar.selectbox(
-            "Choose Distortion:",
-            ["None", "Blur", "Brightness", "Contrast", "Sharpness", "Color", "Rain", "Overlay", "Warp"]
-        )
-
         overlay_image = None
         warp_params = {}
+        blur_intensity = 0.0
+        brightness_intensity = 0.0
+        contrast_intensity = 0.0
+        sharpness_intensity = 0.0
+        saturation_intensity = 1.0
+        hue_shift = 1.0
 
-        if distortion_type == "Color":
-            saturation = st.sidebar.slider("Color Saturation", 0.0, 2.0, 1.0)
-            hue_shift = st.sidebar.slider("Hue Shift", -0.5, 0.5, 0.0)
-        else:
-            intensity = st.sidebar.slider("Distortion Intensity", 0.0, 1.0, 0.5)
+        rain_intensity = st.sidebar.slider(
+            "Rain Intensity", 0.0, 1.0, 0.0
+        )
 
-        if distortion_type == "Overlay":
-            overlay_image = st.sidebar.file_uploader("Upload overlay image", type=["png", "jpg", "jpeg"])
-        elif distortion_type == "Warp":
-            warp_params['wave_amplitude'] = st.sidebar.slider("Wave Amplitude", 0.0, 50.0, 20.0)
-            warp_params['wave_frequency'] = st.sidebar.slider("Wave Frequency", 0.0, 0.1, 0.04)
-            warp_params['bulge_factor'] = st.sidebar.slider("Bulge Factor", -50.0, 50.0, 30.0)
+        overlay_intensity = st.sidebar.slider(
+            "Overlay Intensity", 0.0, 1.0, 1.0
+        )
+
+        overlay_image = st.sidebar.file_uploader(
+            "Upload overlay image", 
+            type=["png", "jpg", "jpeg"]
+        )
+
+        warp_params['wave_amplitude'] = st.sidebar.slider(
+            "Wave Amplitude", 0.0, 50.0, 0.0
+        )
+        warp_params['wave_frequency'] = st.sidebar.slider(
+            "Wave Frequency", 0.0, 0.1, 0.0
+        )
+        warp_params['bulge_factor'] = st.sidebar.slider(
+            "Bulge Factor", -50.0, 50.0, 1.0
+        )
+
+        # Add show more image opts
+        st.session_state.show_more_image_opts = st.sidebar.toggle(
+            "More image adjustment options",
+            value=False
+        )
+
+        if st.session_state.show_more_image_opts:
+            blur_intensity = st.sidebar.slider(
+                "Blur Intensity", 0.0, 1.0, 0.0
+            )
+            brightness_intensity = st.sidebar.slider(
+                "Brightness Intensity", 0.0, 1.0, 0.0
+            )
+            contrast_intensity = st.sidebar.slider(
+                "Contrast Intensity", 0.0, 1.0, 0.0
+            )
+            sharpness_intensity = st.sidebar.slider(
+                "Sharpness Intensity", 0.0, 1.0, 0.0
+            )
+            saturation_intensity = st.sidebar.slider(
+                "Saturation Intensity", 0.0, 2.0, 1.0
+            )
+            hue_shift = st.sidebar.slider(
+                "Hue Intensity", 0.0, 2.0, 1.0
+            )
 
         prompt_option = st.radio("Choose prompt type:", ["Predefined", "Custom"])
-        
         if prompt_option == "Predefined":
             input_text = st.selectbox("Select a predefined prompt:", PREDEFINED_PROMPTS)
         else:
@@ -135,42 +175,41 @@ if st.session_state.api_key:
 
         image = None
         processed_image = None
+
         if uploaded_file:
             try:
                 image = Image.open(uploaded_file)
+                processed_image = apply_distortion(
+                    image,
+                    blur_intensity=blur_intensity,
+                    brightness_intensity=brightness_intensity,
+                    contrast_intensity=contrast_intensity,
+                    sharpness_intensity=sharpness_intensity,
+                    saturation_intensity=saturation_intensity,
+                    hue_shift=hue_shift,
+                    rain_intensity=rain_intensity,
+                    overlay_image=overlay_image,
+                    overlay_intensity=overlay_intensity,
+                    warp_params=warp_params,
+                )
                 
-                if distortion_type != "None":
-                    processed_image = apply_distortion(
-                        image, 
-                        distortion_type, 
-                        intensity if distortion_type != "Color" else None,
-                        overlay_image, 
-                        warp_params,
-                        saturation if distortion_type == "Color" else None,
-                        hue_shift if distortion_type == "Color" else None
-                    )
-                    if processed_image is not None:
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            st.image(image, caption="Original Image", use_column_width=True)
-                        with col2:
-                            caption = f"Processed Image ({distortion_type}"
-                            if distortion_type == "Color":
-                                caption += f", Saturation: {saturation:.2f}, Hue Shift: {hue_shift:.2f}"
-                            else:
-                                caption += f", Intensity: {intensity:.2f}"
-                            caption += ")"
-                            st.image(processed_image, caption=caption, use_column_width=True)
-                    else:
-                        st.error("Failed to process the image. The distortion function returned None.")
+                if processed_image is not None:
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.image(image, caption="Original Image", use_column_width=True)
+                    with col2:
+                        caption = "Processed Image"
+                        st.image(processed_image, caption=caption, use_column_width=True)
                 else:
-                    st.image(image, caption="Original Image", use_column_width=True)
-                    processed_image = image  # If no distortion, use the original image
+                    st.error("Failed to process the image. The distortion function returned None.")
             except Exception as e:
                 st.error(f"An error occurred while processing the image: {str(e)}")
                 st.error(traceback.format_exc())
 
         submit = st.button("Analyse")
+
+
+
 
         if submit:
             if input_text or processed_image:
