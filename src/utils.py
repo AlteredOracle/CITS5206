@@ -1,4 +1,4 @@
-from PIL import Image, ImageEnhance, ImageFilter, ImageDraw, ImageOps
+from PIL import Image, ImageEnhance, ImageFilter, ImageDraw
 import random
 import google.generativeai as genai
 import io
@@ -6,36 +6,65 @@ import numpy as np
 from scipy.ndimage import map_coordinates
 import traceback
 
-def apply_distortion(image, distortion_type, intensity=None, overlay_image=None, warp_params=None, saturation=None, hue_shift=None):
-    print(f"Applying distortion: {distortion_type}")  # Debug print
-    if distortion_type == "Color":
-        if saturation is not None:
-            enhancer = ImageEnhance.Color(image)
-            image = enhancer.enhance(saturation)
-        
-        if hue_shift is not None:
-            image = shift_hue(image, hue_shift)
-        
-        print(f"Color distortion applied. Original size: {image.size}, Distorted size: {image.size}")  # Debug print
-        return image
-    elif distortion_type == "Blur":
-        return image.filter(ImageFilter.GaussianBlur(radius=intensity * 10))
-    elif distortion_type == "Brightness":
-        enhancer = ImageEnhance.Brightness(image)
-        return enhancer.enhance(1 + intensity)
-    elif distortion_type == "Contrast":
-        enhancer = ImageEnhance.Contrast(image)
-        return enhancer.enhance(1 + intensity)
-    elif distortion_type == "Sharpness":
-        enhancer = ImageEnhance.Sharpness(image)
-        return enhancer.enhance(1 + (intensity * 4))
-    elif distortion_type == "Rain":
-        return apply_rain_effect(image, intensity)
-    elif distortion_type == "Overlay":
-        return apply_overlay(image, intensity, overlay_image)
-    elif distortion_type == "Warp":
-        return apply_warp_effect(image, intensity, warp_params)
+
+def apply_distortion(
+    image,
+    blur_intensity=None,
+    brightness_intensity=None,
+    contrast_intensity=None,
+    sharpness_intensity=None,
+    rain_intensity=None,
+    saturation_intensity=None,
+    hue_shift=None,
+    overlay_image=None,
+    overlay_intensity=None,
+    warp_params=None,
+):
+    """Can apply a combination of distortion."""
+    # Sequentially apply all distortion effect
+
+    # Blur
+    if blur_intensity:
+        image = image.filter(ImageFilter.GaussianBlur(radius=blur_intensity * 10))
+
+    # Brightness
+    if brightness_intensity:
+        brightness_enhancer = ImageEnhance.Brightness(image)
+        image = brightness_enhancer.enhance(1 + brightness_intensity)
+
+    # Contrast
+    if contrast_intensity:
+        contrast_enhancer = ImageEnhance.Contrast(image)
+        image = contrast_enhancer.enhance(1 + contrast_intensity)
+
+    # Sharpness
+    if sharpness_intensity:
+        sharpness_enhancer = ImageEnhance.Sharpness(image)
+        image = sharpness_enhancer.enhance(1 + sharpness_intensity * 4)
+
+    # Saturation
+    if saturation_intensity:
+        saturation_enhancer = ImageEnhance.Color(image)
+        image = saturation_enhancer.enhance(saturation_intensity)
+
+    # Hue
+    if hue_shift:
+        image = shift_hue(image, hue_shift)
+
+    # Rain effect
+    if rain_intensity:
+        image = apply_rain_effect(image, rain_intensity)
+
+    # Overlay
+    if overlay_image:
+        image = apply_overlay(image, overlay_intensity, overlay_image)
+
+    # Wrap
+    if warp_params:
+        image = apply_warp_effect(image, warp_params)
+
     return image
+
 
 def shift_hue(image, amount):
     img_hsv = image.convert('HSV')
@@ -84,7 +113,7 @@ def apply_overlay(image, intensity, overlay_image):
         print(f"Error applying overlay: {str(e)}")
         return image  # Return the original image if there's an error
 
-def apply_warp_effect(image, intensity, warp_params):
+def apply_warp_effect(image, warp_params):
     try:
         img = np.array(image)
         rows, cols = img.shape[0], img.shape[1]
@@ -93,7 +122,7 @@ def apply_warp_effect(image, intensity, warp_params):
         src_cols, src_rows = np.meshgrid(np.linspace(0, cols-1, cols), np.linspace(0, rows-1, rows))
         
         # Wave effect
-        wave_amplitude = warp_params.get('wave_amplitude', 20) * intensity
+        wave_amplitude = warp_params.get('wave_amplitude', 20)
         wave_frequency = warp_params.get('wave_frequency', 0.05) * 10  # Increase frequency impact
         dst_rows = src_rows + np.sin(src_cols * wave_frequency) * wave_amplitude
         dst_cols = src_cols + np.sin(src_rows * wave_frequency) * wave_amplitude
@@ -102,7 +131,7 @@ def apply_warp_effect(image, intensity, warp_params):
         center_row, center_col = rows // 2, cols // 2
         dist_from_center = np.sqrt((src_rows - center_row)**2 + (src_cols - center_col)**2)
         
-        bulge_factor = warp_params.get('bulge_factor', 30) * intensity * 2  # Increase bulge impact
+        bulge_factor = warp_params.get('bulge_factor', 30) * 2  # Increase bulge impact
         max_dist = np.sqrt(center_row**2 + center_col**2)
         
         # Normalize distances
