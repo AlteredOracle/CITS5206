@@ -50,7 +50,7 @@ if 'api_key' not in st.session_state:
 if 'model_choice' not in st.session_state:
     st.session_state.model_choice = "gemini-1.5-flash-latest"
 
-# Add this near the top of your file, after the imports
+# Predefined Prompts
 PREDEFINED_PROMPTS = [
     "Analyze the road safety features visible in this image.",
     "Identify potential hazards for pedestrians in this scene.",
@@ -64,10 +64,10 @@ PREDEFINED_PROMPTS = [
     "Identify any potential blind spots or visual obstructions for drivers.",
 ]
 
-# Add this near the top of your file, after the imports
+# Distortion Types
 DISTORTION_TYPES = ["None", "Blur", "Brightness", "Contrast", "Sharpness", "Color", "Rain", "Overlay", "Warp"]
 
-# Rest of your app code starts here
+# Title
 st.title("Multimodal LLM Road Safety Platform")
 
 # Sidebar
