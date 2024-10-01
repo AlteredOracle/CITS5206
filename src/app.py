@@ -213,6 +213,54 @@ if st.session_state.api_key:
                 st.warning("Please provide either an input prompt, an image, or both.")
 
     else:  # Bulk Analysis
+        st.subheader("Bulk Analysis Settings")
+        
+        use_centralized_distortions = st.checkbox("Use centralized distortion settings for all images", value=False)
+        
+        if use_centralized_distortions:
+            st.subheader("Centralized Distortion Settings")
+            centralized_distortions = st.multiselect(
+                "Choose Distortions for all images:",
+                DISTORTION_TYPES[1:],  # Exclude "None" from the options
+                key="centralized_distortions"
+            )
+            
+            centralized_distortion_settings = {}
+            for distortion_type in centralized_distortions:
+                with st.expander(f"{distortion_type} Settings"):
+                    if distortion_type == "Color":
+                        saturation = st.slider(f"{distortion_type} Saturation", 0.0, 2.0, 1.0)
+                        hue_shift = st.slider(f"{distortion_type} Hue Shift", -0.5, 0.5, 0.0)
+                        centralized_distortion_settings[distortion_type] = {
+                            'saturation': saturation,
+                            'hue_shift': hue_shift
+                        }
+                    elif distortion_type == "Overlay":
+                        intensity = st.slider(f"{distortion_type} Intensity", 0.0, 1.0, 0.5)
+                        overlay_image = st.file_uploader(f"Upload {distortion_type} image", type=["png", "jpg", "jpeg"])
+                        centralized_distortion_settings[distortion_type] = {
+                            'intensity': intensity,
+                            'overlay_image': overlay_image
+                        }
+                    elif distortion_type == "Warp":
+                        intensity = st.slider(f"{distortion_type} Intensity", 0.0, 1.0, 0.5)
+                        wave_amplitude = st.slider(f"{distortion_type} Wave Amplitude", 0.0, 50.0, 20.0)
+                        wave_frequency = st.slider(f"{distortion_type} Wave Frequency", 0.0, 0.1, 0.04)
+                        bulge_factor = st.slider(f"{distortion_type} Bulge Factor", -50.0, 50.0, 30.0)
+                        centralized_distortion_settings[distortion_type] = {
+                            'intensity': intensity,
+                            'warp_params': {
+                                'wave_amplitude': wave_amplitude,
+                                'wave_frequency': wave_frequency,
+                                'bulge_factor': bulge_factor
+                            }
+                        }
+                    else:
+                        intensity = st.slider(f"{distortion_type} Intensity", 0.0, 1.0, 0.5)
+                        centralized_distortion_settings[distortion_type] = {
+                            'intensity': intensity
+                        }
+
         st.subheader("Bulk Analysis")
         
         analysis_source = st.radio("Choose analysis source:", ["Upload Files", "Specify Folder Path"])
@@ -295,13 +343,19 @@ if st.session_state.api_key:
                         st.image(image, caption="Original Image", use_column_width=True)
                     
                     with col2:
-                        # Multiple distortion selection
-                        settings['distortions'] = st.multiselect(
-                            "Choose Distortions:",
-                            DISTORTION_TYPES[1:],  # Exclude "None" from the options
-                            default=settings.get('distortions', []),
-                            key=f"distortions_{i}"
-                        )
+                        if use_centralized_distortions:
+                            st.write("Using centralized distortion settings")
+                            settings['distortions'] = centralized_distortions
+                            for distortion_type in centralized_distortions:
+                                settings[distortion_type] = centralized_distortion_settings[distortion_type]
+                        else:
+                            # Multiple distortion selection
+                            settings['distortions'] = st.multiselect(
+                                "Choose Distortions:",
+                                DISTORTION_TYPES[1:],  # Exclude "None" from the options
+                                default=settings.get('distortions', []),
+                                key=f"distortions_{i}"
+                            )
                         
                         # Distortion settings using tabs
                         if settings['distortions']:
