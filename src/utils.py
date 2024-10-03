@@ -23,41 +23,41 @@ def apply_distortion(
     """Can apply a combination of distortion."""
     # Sequentially apply all distortion effect
 
+    # Overlay
+    if overlay_image is not None:
+        image = apply_overlay(image, overlay_intensity, overlay_image)
+
     # Blur
-    if blur_intensity:
+    if blur_intensity > 0:
         image = image.filter(ImageFilter.GaussianBlur(radius=blur_intensity * 10))
 
     # Brightness
-    if brightness_intensity:
+    if brightness_intensity > 0:
         brightness_enhancer = ImageEnhance.Brightness(image)
         image = brightness_enhancer.enhance(1 + brightness_intensity)
 
     # Contrast
-    if contrast_intensity:
+    if contrast_intensity > 0:
         contrast_enhancer = ImageEnhance.Contrast(image)
         image = contrast_enhancer.enhance(1 + contrast_intensity)
 
     # Sharpness
-    if sharpness_intensity:
+    if sharpness_intensity > 0:
         sharpness_enhancer = ImageEnhance.Sharpness(image)
         image = sharpness_enhancer.enhance(1 + sharpness_intensity * 4)
 
     # Saturation
-    if saturation_intensity:
+    if saturation_intensity != 1:
         saturation_enhancer = ImageEnhance.Color(image)
         image = saturation_enhancer.enhance(saturation_intensity)
 
     # Hue
-    if hue_shift:
+    if hue_shift != 1:
         image = shift_hue(image, hue_shift)
 
     # Rain effect
-    if rain_intensity:
+    if rain_intensity > 0.0:
         image = apply_rain_effect(image, rain_intensity)
-
-    # Overlay
-    if overlay_image:
-        image = apply_overlay(image, overlay_intensity, overlay_image)
 
     # Wrap
     if warp_params:

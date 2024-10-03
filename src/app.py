@@ -107,6 +107,7 @@ if st.session_state.api_key:
     # Set some default value for distortion
     # These values are the values where the image stay original.
     overlay_image = None
+    overlay_intensity = 1.0
     warp_params = {}
     blur_intensity = 0.0
     brightness_intensity = 0.0
@@ -115,28 +116,32 @@ if st.session_state.api_key:
     saturation_intensity = 1.0
     hue_shift = 1.0
 
-    rain_intensity = st.sidebar.slider(
-        "Rain Intensity", 0.0, 1.0, 0.0
-    )
+    with st.sidebar.expander("Rain Effect"):
+        rain_intensity = st.slider(
+            "Rain Intensity", 0.0, 1.0, 0.0
+        )
 
-    overlay_intensity = st.sidebar.slider(
-        "Overlay Intensity", 0.0, 1.0, 1.0
-    )
+    with st.sidebar.expander("Wrapping Effect"):
+        warp_params["wave_amplitude"] = st.slider(
+            "Wave Amplitude", 0.0, 1.0, 0.0
+        )
+        warp_params["wave_frequency"] = st.slider(
+            "Wave Frequency", 0.0, 1.0, 0.0
+        )
+        warp_params["bulge_factor"] = st.slider(
+            "Bulge Factor", 0.0, 1.0, 0.0
+        )
 
-    overlay_image = st.sidebar.file_uploader(
-        "Upload overlay image",
-        type=["png", "jpg", "jpeg"]
-    )
+    with st.sidebar.expander("Overlay Effect"):
+        overlay_image = st.file_uploader(
+            "Upload overlay image",
+            type=["png", "jpg", "jpeg"]
+        )
 
-    warp_params['wave_amplitude'] = st.sidebar.slider(
-        "Wave Amplitude", 0.0, 50.0, 0.0
-    )
-    warp_params['wave_frequency'] = st.sidebar.slider(
-        "Wave Frequency", 0.0, 0.1, 0.0
-    )
-    warp_params['bulge_factor'] = st.sidebar.slider(
-        "Bulge Factor", -50.0, 50.0, 1.0
-    )
+        if overlay_image:
+            overlay_intensity = st.slider(
+                "Overlay Transparency", 0.0, 1.0, 1.0
+            )
 
     # Add show more image opts
     st.session_state.show_more_image_opts = st.sidebar.toggle(
@@ -239,7 +244,7 @@ if st.session_state.api_key:
                     "Image": image_name,
                     "Input Text": input_text,
                     "Rain Intensity": rain_intensity,
-                    "Overlay Image": overlay_image,
+                    "Overlay Image": overlay_image.name if overlay_image else "",
                     "Overlay Intensity": overlay_intensity,
                     "Wave Amplitude": warp_params["wave_amplitude"],
                     "Wave Frequency": warp_params["wave_frequency"],
@@ -273,7 +278,7 @@ if st.session_state.api_key:
             st.download_button(
                 label="Download CSV",
                 data=csv,
-                file_name="bulk_analysis_results.csv",
+                file_name="analysis_results.csv",
                 mime="text/csv",
             )
             processed_images = []
