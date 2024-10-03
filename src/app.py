@@ -267,7 +267,6 @@ if st.session_state.api_key:
                             centralized_distortion_settings.get(distortion_type, {}).get('intensity', 0.5)
                         )
 
-                        # Use a unique key for the file uploader
                         overlay_image = st.file_uploader(
                             f"Upload {distortion_type} image",
                             type=["png", "jpg", "jpeg"],
@@ -275,21 +274,25 @@ if st.session_state.api_key:
                         )
 
                         if overlay_image is not None:
-                            # Store the uploaded file in session state
-                            st.session_state[f'overlay_image_bytes_{distortion_type}'] = overlay_image.getvalue()
+                            overlay_img = Image.open(overlay_image).convert("RGBA")
+                            overlay_img.thumbnail((300, 300))  # Resize to a manageable size
+                            img_byte_arr = io.BytesIO()
+                            overlay_img.save(img_byte_arr, format='PNG')
+                            centralized_distortion_settings[distortion_type] = {
+                                'intensity': intensity,
+                                'overlay_image': img_byte_arr.getvalue()
+                            }
                             st.success("Overlay image uploaded successfully.")
-                        elif f'overlay_image_bytes_{distortion_type}' in st.session_state:
-                            st.info("Using previously uploaded overlay image.")
                         else:
-                            st.warning("No overlay image uploaded.")
-
-                        # Retrieve the overlay image bytes from session state
-                        overlay_image_bytes = st.session_state.get(f'overlay_image_bytes_{distortion_type}', None)
-
-                        centralized_distortion_settings[distortion_type] = {
-                            'intensity': intensity,
-                            'overlay_image': overlay_image_bytes
-                        }
+                            # Clear the overlay image if no file is uploaded
+                            if distortion_type in centralized_distortion_settings:
+                                centralized_distortion_settings[distortion_type]['overlay_image'] = None
+                            else:
+                                centralized_distortion_settings[distortion_type] = {
+                                    'intensity': intensity,
+                                    'overlay_image': None
+                                }
+                            st.info("No overlay image selected.")
                     elif distortion_type == "Warp":
                         intensity = st.slider(
                             f"{distortion_type} Intensity",
@@ -420,7 +423,6 @@ if st.session_state.api_key:
                             st.write("Using centralized distortion settings")
                             settings['distortions'] = centralized_distortions
                             for distortion_type in centralized_distortions:
-                                # Copy all settings for each distortion type
                                 if distortion_type in centralized_distortion_settings:
                                     for key, value in centralized_distortion_settings[distortion_type].items():
                                         settings[f"{distortion_type}_{key}"] = value
@@ -476,10 +478,9 @@ if st.session_state.api_key:
                                             overlay_img.save(img_byte_arr, format='PNG')
                                             settings[f"{distortion_type}_overlay_image"] = img_byte_arr.getvalue()
                                             st.success("Overlay image uploaded successfully.")
-                                        elif settings.get(f"{distortion_type}_overlay_image"):
-                                            st.info("Using previously uploaded overlay image.")
-                                        else:
-                                            st.warning("No overlay image uploaded.")
+                                        elif f"{distortion_type}_overlay_image" not in settings:
+                                            settings[f"{distortion_type}_overlay_image"] = None
+                                            st.info("No overlay image selected.")
                                     elif distortion_type == "Warp":
                                         settings[f"{distortion_type}_intensity"] = st.slider(
                                             "Intensity",
@@ -543,7 +544,12 @@ if st.session_state.api_key:
                                 distortion_params["intensity"] = settings.get(f"{distortion_type}_intensity", 0.5)
                             distortions_list.append(distortion_params)
 
-                        processed_image = apply_distortions(image, distortions_list)
+                        # Only apply distortions if there are valid distortions to apply
+                        if any(d for d in distortions_list if d.get("overlay_image") is not None or d["type"] != "Overlay"):
+                            processed_image = apply_distortions(image, distortions_list)
+                        else:
+                            processed_image = image
+
                         st.image(processed_image, caption="Processed Image", use_column_width=True)
 
                         # Input text
@@ -620,7 +626,11 @@ if st.session_state.api_key:
                                 distortion_params["intensity"] = settings.get(f"{distortion_type}_intensity", 0.5)
                             distortions_list.append(distortion_params)
 
-                    processed_image = apply_distortions(image, distortions_list)
+                    # Only apply distortions if there are valid distortions to apply
+                    if any(d for d in distortions_list if d.get("overlay_image") is not None or d["type"] != "Overlay"):
+                        processed_image = apply_distortions(image, distortions_list)
+                    else:
+                        processed_image = image
 
                     # Get AI response
                     response = get_gemini_response(
