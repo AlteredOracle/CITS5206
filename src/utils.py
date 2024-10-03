@@ -62,10 +62,15 @@ def apply_overlay(image, intensity, overlay_image):
         return image
     
     try:
-        if isinstance(overlay_image, Image.Image):
+        if isinstance(overlay_image, (bytes, io.BytesIO)):
+            overlay = Image.open(io.BytesIO(overlay_image)).convert("RGBA")
+        elif isinstance(overlay_image, Image.Image):
             overlay = overlay_image.convert("RGBA")
-        else:
+        elif isinstance(overlay_image, str):
             overlay = Image.open(overlay_image).convert("RGBA")
+        else:
+            print(f"Unsupported overlay_image type: {type(overlay_image)}")
+            return image
         
         overlay = overlay.resize(image.size)
         
@@ -82,6 +87,7 @@ def apply_overlay(image, intensity, overlay_image):
         return result.convert("RGB")
     except Exception as e:
         print(f"Error applying overlay: {str(e)}")
+        traceback.print_exc()
         return image  # Return the original image if there's an error
 
 def apply_warp_effect(image, intensity, warp_params):
