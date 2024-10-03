@@ -381,20 +381,16 @@ if st.session_state.api_key:
                         for distortion_type in settings['distortions']:
                             distortion_params = {"type": distortion_type}
                             if distortion_type == "Color":
-                                distortion_params["saturation"] = settings[f"{distortion_type}_saturation"]
-                                distortion_params["hue_shift"] = settings[f"{distortion_type}_hue_shift"]
+                                distortion_params["saturation"] = settings[distortion_type]['saturation']
+                                distortion_params["hue_shift"] = settings[distortion_type]['hue_shift']
                             elif distortion_type == "Overlay":
-                                distortion_params["intensity"] = settings[f"{distortion_type}_intensity"]
-                                distortion_params["overlay_image"] = settings[f"{distortion_type}_overlay_image"]
+                                distortion_params["intensity"] = settings[distortion_type]['intensity']
+                                distortion_params["overlay_image"] = settings[distortion_type]['overlay_image']
                             elif distortion_type == "Warp":
-                                distortion_params["intensity"] = settings[f"{distortion_type}_intensity"]
-                                distortion_params["warp_params"] = {
-                                    "wave_amplitude": settings[f"{distortion_type}_wave_amplitude"],
-                                    "wave_frequency": settings[f"{distortion_type}_wave_frequency"],
-                                    "bulge_factor": settings[f"{distortion_type}_bulge_factor"]
-                                }
+                                distortion_params["intensity"] = settings[distortion_type]['intensity']
+                                distortion_params["warp_params"] = settings[distortion_type]['warp_params']
                             else:
-                                distortion_params["intensity"] = settings[f"{distortion_type}_intensity"]
+                                distortion_params["intensity"] = settings[distortion_type]['intensity']
                             distortions_list.append(distortion_params)
                         
                         processed_image = apply_distortions(image, distortions_list)
@@ -433,20 +429,16 @@ if st.session_state.api_key:
                     for distortion_type in settings["distortions"]:
                         distortion_params = {"type": distortion_type}
                         if distortion_type == "Color":
-                            distortion_params["saturation"] = settings[f"{distortion_type}_saturation"]
-                            distortion_params["hue_shift"] = settings[f"{distortion_type}_hue_shift"]
+                            distortion_params["saturation"] = settings[distortion_type]['saturation']
+                            distortion_params["hue_shift"] = settings[distortion_type]['hue_shift']
                         elif distortion_type == "Overlay":
-                            distortion_params["intensity"] = settings[f"{distortion_type}_intensity"]
-                            distortion_params["overlay_image"] = settings[f"{distortion_type}_overlay_image"]
+                            distortion_params["intensity"] = settings[distortion_type]['intensity']
+                            distortion_params["overlay_image"] = settings[distortion_type]['overlay_image']
                         elif distortion_type == "Warp":
-                            distortion_params["intensity"] = settings[f"{distortion_type}_intensity"]
-                            distortion_params["warp_params"] = {
-                                "wave_amplitude": settings[f"{distortion_type}_wave_amplitude"],
-                                "wave_frequency": settings[f"{distortion_type}_wave_frequency"],
-                                "bulge_factor": settings[f"{distortion_type}_bulge_factor"]
-                            }
+                            distortion_params["intensity"] = settings[distortion_type]['intensity']
+                            distortion_params["warp_params"] = settings[distortion_type]['warp_params']
                         else:
-                            distortion_params["intensity"] = settings[f"{distortion_type}_intensity"]
+                            distortion_params["intensity"] = settings[distortion_type]['intensity']
                         distortions_list.append(distortion_params)
                     
                     processed_image = apply_distortions(image, distortions_list)
