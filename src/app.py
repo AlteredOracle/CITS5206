@@ -632,6 +632,16 @@ if st.session_state.api_key:
                     else:
                         processed_image = image
 
+                    # Modify this part to include intensity information
+                    distortions_info = []
+                    for d in distortions_list:
+                        if d['type'] == 'Color':
+                            distortions_info.append(f"{d['type']} (Saturation: {d['saturation']:.2f}, Hue Shift: {d['hue_shift']:.2f})")
+                        elif d['type'] == 'Warp':
+                            distortions_info.append(f"{d['type']} (Intensity: {d['intensity']:.2f}, Wave Amp: {d['warp_params']['wave_amplitude']:.2f}, Wave Freq: {d['warp_params']['wave_frequency']:.2f}, Bulge: {d['warp_params']['bulge_factor']:.2f})")
+                        else:
+                            distortions_info.append(f"{d['type']} (Intensity: {d['intensity']:.2f})")
+
                     # Get AI response
                     response = get_gemini_response(
                         settings["input_text"],
@@ -643,7 +653,7 @@ if st.session_state.api_key:
                     # Add result to list
                     results.append({
                         "Image": file_name,
-                        "Distortions": ', '.join([d['type'] for d in distortions_list]),
+                        "Distortions": ', '.join(distortions_info),  # This now includes intensity information
                         "Input Text": settings["input_text"],
                         "AI Response": response
                     })
