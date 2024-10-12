@@ -142,14 +142,15 @@ def apply_distortions(image, distortions):
         image = apply_distortion(image, **distortion)
     return image
 
-def get_gemini_response(input_text, image, model_name, system_instructions):
+def get_gemini_response(input_text, image, model_name, system_instructions, expected_fields):
     model = genai.GenerativeModel(model_name)
     response = None
     
     # Add the JSON request to the system instructions internally
-    json_request = """
+    json_request = f"""
     After your natural language response, please provide a JSON representation of your analysis.
-    The JSON structure should reflect the key points of your response, with fields corresponding to the main aspects of your analysis.
+    The JSON structure should include the following fields (only include non-empty fields):
+    {', '.join(expected_fields)}
     Ensure that the content in the JSON matches your natural language response exactly.
     Enclose the JSON structure within ===JSON=== tags.
     """
