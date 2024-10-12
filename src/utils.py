@@ -189,6 +189,8 @@ def get_gemini_response(input_text, image, model_name, system_instructions):
                 json_str = json_match.group(1)
                 try:
                     json_response = json.loads(json_str)
+                    # Remove empty fields from the JSON response
+                    json_response = {k: v for k, v in json_response.items() if v}
                     # Remove the JSON part from the text response
                     text_response = re.sub(r'===JSON===.*===JSON===', '', text_response, flags=re.DOTALL).strip()
                 except json.JSONDecodeError:
