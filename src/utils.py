@@ -148,13 +148,8 @@ def get_gemini_response(input_text, image, model_name, system_instructions):
     
     # Add the JSON request to the system instructions internally
     json_request = """
-    After your natural language response, please provide an exact JSON representation of your analysis with the following structure:
-    {
-        "description": "Your full description of the scene",
-        "potential_hazards": ["List of all potential hazards mentioned"],
-        "suggested_improvements": ["List of all suggested improvements mentioned"],
-        "overall_safety": "Your full assessment of the overall safety"
-    }
+    After your natural language response, please provide a JSON representation of your analysis.
+    The JSON structure should reflect the key points of your response, with fields corresponding to the main aspects of your analysis.
     Ensure that the content in the JSON matches your natural language response exactly.
     Enclose the JSON structure within ===JSON=== tags.
     """

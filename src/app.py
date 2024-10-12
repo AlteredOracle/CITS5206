@@ -7,6 +7,7 @@ import traceback
 import pandas as pd
 from io import StringIO
 import io
+import json
 
 # Set page configuration
 st.set_page_config(page_title="Multimodal LLM Road Safety Platform", layout="wide")
@@ -203,7 +204,7 @@ if st.session_state.api_key:
         if submit:
             if input_text or processed_image:
                 try:
-                    response = get_gemini_response(
+                    text_response, json_response = get_gemini_response(
                         input_text,
                         processed_image,
                         st.session_state.model_choice,
@@ -214,7 +215,10 @@ if st.session_state.api_key:
                     st.write(input_text if input_text else "[No text input]")
 
                     st.subheader("AI Response")
-                    st.write(response)
+                    st.write(text_response)
+
+                    # Remove the JSON Response display here
+
                 except Exception as e:
                     st.error(f"An error occurred during analysis: {str(e)}")
 
@@ -662,6 +666,9 @@ if st.session_state.api_key:
                     # Show AI response
                     st.write(f"AI Response for {file_name}:")
                     st.write(text_response)
+                    
+                    # Remove the JSON Response display here
+                    
                     st.markdown("---")  # Add a separator between images
 
                 except Exception as e:
