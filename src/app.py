@@ -643,7 +643,7 @@ if st.session_state.api_key:
                             distortions_info.append(f"{d['type']} (Intensity: {d['intensity']:.2f})")
 
                     # Get AI response
-                    response = get_gemini_response(
+                    text_response, json_response = get_gemini_response(
                         settings["input_text"],
                         processed_image,
                         st.session_state.model_choice,
@@ -653,14 +653,15 @@ if st.session_state.api_key:
                     # Add result to list
                     results.append({
                         "Image": file_name,
-                        "Distortions": ', '.join(distortions_info),  # This now includes intensity information
+                        "Distortions": ', '.join(distortions_info),
                         "Input Text": settings["input_text"],
-                        "AI Response": response
+                        "AI Response": text_response,
+                        "JSON Response": json_response
                     })
 
                     # Show AI response
                     st.write(f"AI Response for {file_name}:")
-                    st.write(response)
+                    st.write(text_response)
                     st.markdown("---")  # Add a separator between images
 
                 except Exception as e:

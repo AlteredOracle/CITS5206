@@ -5,6 +5,8 @@ import io
 import numpy as np
 from scipy.ndimage import map_coordinates
 import traceback
+import json
+import re
 
 def apply_distortion(image, type, **params):
     print(f"Applying distortion: {type}")  # Debug print
@@ -144,6 +146,21 @@ def get_gemini_response(input_text, image, model_name, system_instructions):
     model = genai.GenerativeModel(model_name)
     response = None
     
+    # Add the JSON request to the system instructions internally
+    json_request = """
+    After your natural language response, please provide an exact JSON representation of your analysis with the following structure:
+    {
+        "description": "Your full description of the scene",
+        "potential_hazards": ["List of all potential hazards mentioned"],
+        "suggested_improvements": ["List of all suggested improvements mentioned"],
+        "overall_safety": "Your full assessment of the overall safety"
+    }
+    Ensure that the content in the JSON matches your natural language response exactly.
+    Enclose the JSON structure within ===JSON=== tags.
+    """
+    
+    full_instructions = f"{system_instructions}\n\n{json_request}" if system_instructions else json_request
+
     # Ensure the image is in the correct format
     if image:
         if isinstance(image, Image.Image):
@@ -160,8 +177,8 @@ def get_gemini_response(input_text, image, model_name, system_instructions):
     
     try:
         content = []
-        if system_instructions:
-            content.append(system_instructions)
+        if full_instructions:
+            content.append(full_instructions)
         if input_text:
             content.append(input_text)
         if img_byte_arr:
@@ -169,8 +186,24 @@ def get_gemini_response(input_text, image, model_name, system_instructions):
         
         if content:
             response = model.generate_content(content)
-            return response.text if response else "No response from the model."
+            text_response = response.text if response else "No response from the model."
+            
+            # Extract JSON from the response
+            json_match = re.search(r'===JSON===\s*(.*?)\s*===JSON===', text_response, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(1)
+                try:
+                    json_response = json.loads(json_str)
+                    # Remove the JSON part from the text response
+                    text_response = re.sub(r'===JSON===.*===JSON===', '', text_response, flags=re.DOTALL).strip()
+                except json.JSONDecodeError:
+                    json_response = {"error": "Failed to parse JSON from AI response"}
+            else:
+                json_response = {"error": "No JSON found in AI response"}
+            
+            return text_response, json.dumps(json_response, indent=2)
         else:
-            return "No input provided to the model."
+            return "No input provided to the model.", "{}"
     except Exception as e:
-        return f"Error generating response: {str(e)}"
+        error_message = f"Error generating response: {str(e)}"
+        return error_message, json.dumps({"error": error_message})
