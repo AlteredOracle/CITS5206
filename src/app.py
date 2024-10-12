@@ -660,15 +660,8 @@ if st.session_state.api_key:
                         "Distortions": ', '.join(distortions_info),
                         "Input Text": settings["input_text"],
                         "AI Response": text_response,
-                        "JSON Response": json.dumps(json_response, indent=2)  # Include full JSON response
+                        "JSON Response": json.dumps(json_response, indent=2)
                     }
-
-                    # Add JSON fields to the result dictionary
-                    for key, value in json_response.items():
-                        if isinstance(value, list):
-                            result[key] = ', '.join(value)
-                        else:
-                            result[key] = value
 
                     # Add result to list
                     results.append(result)
@@ -686,7 +679,35 @@ if st.session_state.api_key:
                 progress_bar.progress((i + 1) / len(uploaded_files))
 
             if results:
+                # Create DataFrame
                 results_df = pd.DataFrame(results)
+
+                # Function to normalize keys
+                def normalize_key(key):
+                    return key.lower().replace(" ", "_")
+
+                # Extract JSON fields
+                json_fields = set()
+                for result in results:
+                    json_data = json.loads(result['JSON Response'])
+                    json_fields.update(normalize_key(key) for key in json_data.keys())
+
+                # Add JSON fields as separate columns
+                for field in json_fields:
+                    results_df[field] = results_df['JSON Response'].apply(
+                        lambda x: json.loads(x).get(field.title().replace("_", " ")) or 
+                                  json.loads(x).get(field)
+                    )
+                    # Check if the field contains a list and join it into a string
+                    if results_df[field].dtype == 'object':
+                        results_df[field] = results_df[field].apply(
+                            lambda x: ', '.join(x) if isinstance(x, list) else x
+                        )
+
+                # Reorder columns
+                columns_order = ["Image", "Distortions", "Input Text", "AI Response"] + list(json_fields)
+                results_df = results_df[columns_order]
+
                 st.subheader("Analysis Results")
                 st.dataframe(results_df)
 
