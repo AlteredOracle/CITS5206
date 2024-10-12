@@ -69,7 +69,7 @@ PREDEFINED_PROMPTS = [
 # Distortion Types
 DISTORTION_TYPES = ["None", "Blur", "Brightness", "Contrast", "Sharpness", "Color", "Rain", "Overlay", "Warp"]
 
-# Add this after the PREDEFINED_PROMPTS definition
+# Expected JSON Fields
 EXPECTED_JSON_FIELDS = [
     "scene_description",
     "safety_features",
