@@ -654,26 +654,34 @@ if st.session_state.api_key:
                         st.session_state.system_instructions if st.session_state.use_system_instructions else None
                     )
 
-                    # Add result to list
-                    results.append({
+                    # Create a result dictionary with basic info
+                    result = {
                         "Image": file_name,
                         "Distortions": ', '.join(distortions_info),
                         "Input Text": settings["input_text"],
                         "AI Response": text_response,
-                        "JSON Response": json_response
-                    })
+                        "JSON Response": json.dumps(json_response, indent=2)  # Include full JSON response
+                    }
+
+                    # Add JSON fields to the result dictionary
+                    for key, value in json_response.items():
+                        if isinstance(value, list):
+                            result[key] = ', '.join(value)
+                        else:
+                            result[key] = value
+
+                    # Add result to list
+                    results.append(result)
 
                     # Show AI response
                     st.write(f"AI Response for {file_name}:")
                     st.write(text_response)
-                    
-                    # Remove the JSON Response display here
-                    
+
                     st.markdown("---")  # Add a separator between images
 
                 except Exception as e:
                     st.error(f"Error processing {file_name}: {str(e)}")
-                    st.error(traceback.format_exc())  # This will print the full error traceback
+                    st.error(traceback.format_exc())
 
                 progress_bar.progress((i + 1) / len(uploaded_files))
 

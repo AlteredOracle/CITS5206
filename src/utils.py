@@ -198,9 +198,9 @@ def get_gemini_response(input_text, image, model_name, system_instructions):
             else:
                 json_response = {"error": "No JSON found in AI response"}
             
-            return text_response, json.dumps(json_response, indent=2)
+            return text_response, json_response  # Return JSON as a Python dictionary
         else:
-            return "No input provided to the model.", "{}"
+            return "No input provided to the model.", {}
     except Exception as e:
         error_message = f"Error generating response: {str(e)}"
-        return error_message, json.dumps({"error": error_message})
+        return error_message, {"error": error_message}
