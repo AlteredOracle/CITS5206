@@ -7,6 +7,7 @@ import traceback
 import pandas as pd
 from io import StringIO
 import io
+import json
 
 # Set page configuration
 st.set_page_config(page_title="Multimodal LLM Road Safety Platform", layout="wide")
@@ -67,6 +68,23 @@ PREDEFINED_PROMPTS = [
 
 # Distortion Types
 DISTORTION_TYPES = ["None", "Blur", "Brightness", "Contrast", "Sharpness", "Color", "Rain", "Overlay", "Warp"]
+
+# Expected JSON Fields
+EXPECTED_JSON_FIELDS = [
+    "scene_description",
+    "safety_features",
+    "potential_hazards",
+    "traffic_signs_effectiveness",
+    "road_conditions",
+    "suggested_improvements",
+    "intersection_design",
+    "road_markings_issues",
+    "cyclist_safety",
+    "lighting_conditions",
+    "traffic_lights_visibility",
+    "blind_spots",
+    "overall_safety"
+]
 
 # Title
 st.title("Multimodal LLM Road Safety Platform")
@@ -203,18 +221,22 @@ if st.session_state.api_key:
         if submit:
             if input_text or processed_image:
                 try:
-                    response = get_gemini_response(
+                    text_response, json_response = get_gemini_response(
                         input_text,
                         processed_image,
                         st.session_state.model_choice,
-                        st.session_state.system_instructions if st.session_state.use_system_instructions else None
+                        st.session_state.system_instructions if st.session_state.use_system_instructions else None,
+                        EXPECTED_JSON_FIELDS  # Add this line
                     )
 
                     st.subheader("User Input")
                     st.write(input_text if input_text else "[No text input]")
 
                     st.subheader("AI Response")
-                    st.write(response)
+                    st.write(text_response)
+
+                    # Remove the JSON Response display here
+
                 except Exception as e:
                     st.error(f"An error occurred during analysis: {str(e)}")
 
@@ -643,34 +665,68 @@ if st.session_state.api_key:
                             distortions_info.append(f"{d['type']} (Intensity: {d['intensity']:.2f})")
 
                     # Get AI response
-                    response = get_gemini_response(
+                    text_response, json_response = get_gemini_response(
                         settings["input_text"],
                         processed_image,
                         st.session_state.model_choice,
-                        st.session_state.system_instructions if st.session_state.use_system_instructions else None
+                        st.session_state.system_instructions if st.session_state.use_system_instructions else None,
+                        EXPECTED_JSON_FIELDS  # Add this line
                     )
 
-                    # Add result to list
-                    results.append({
+                    # Create a result dictionary with basic info
+                    result = {
                         "Image": file_name,
-                        "Distortions": ', '.join(distortions_info),  # This now includes intensity information
+                        "Distortions": ', '.join(distortions_info),
                         "Input Text": settings["input_text"],
-                        "AI Response": response
-                    })
+                        "AI Response": text_response,
+                        "JSON Response": json.dumps(json_response, indent=2)
+                    }
+
+                    # Add result to list
+                    results.append(result)
 
                     # Show AI response
                     st.write(f"AI Response for {file_name}:")
-                    st.write(response)
+                    st.write(text_response)
+
                     st.markdown("---")  # Add a separator between images
 
                 except Exception as e:
                     st.error(f"Error processing {file_name}: {str(e)}")
-                    st.error(traceback.format_exc())  # This will print the full error traceback
+                    st.error(traceback.format_exc())
 
                 progress_bar.progress((i + 1) / len(uploaded_files))
 
             if results:
+                # Create DataFrame
                 results_df = pd.DataFrame(results)
+
+                # Add JSON fields as separate columns
+                for field in EXPECTED_JSON_FIELDS:
+                    results_df[field] = results_df['JSON Response'].apply(
+                        lambda x: json.loads(x).get(field, '')
+                    )
+                    # Check if the field contains a list and join it into a string
+                    if results_df[field].dtype == 'object':
+                        results_df[field] = results_df[field].apply(
+                            lambda x: ', '.join(x) if isinstance(x, list) else x
+                        )
+
+                # Remove empty columns
+                results_df = results_df.dropna(axis=1, how='all')
+
+                # Remove columns that are entirely empty strings
+                results_df = results_df.loc[:, (results_df != '').any()]
+
+                # Reorder columns
+                base_columns = ["Image", "Distortions", "Input Text", "AI Response", "JSON Response"]
+                json_columns = [col for col in EXPECTED_JSON_FIELDS if col in results_df.columns]
+                columns_order = base_columns + json_columns
+
+                # Only include columns that exist in the DataFrame
+                columns_order = [col for col in columns_order if col in results_df.columns]
+                results_df = results_df[columns_order]
+
                 st.subheader("Analysis Results")
                 st.dataframe(results_df)
 
