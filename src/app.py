@@ -1,3 +1,5 @@
+import json
+import re
 import streamlit as st
 import os
 from PIL import Image
@@ -175,6 +177,14 @@ if st.session_state.api_key:
     else:
         input_text = st.text_input("Input Custom Prompt:", key="input")
 
+    # Multiline text area for JSON input
+    json_input = st.text_area("User defined extra column...", height=200, value="""[]""")
+    try:
+        parsed_json = json.loads(json_input)
+        st.json(parsed_json)
+    except:
+        parsed_json = []
+
     # Analysis part
     folder_path = st.text_input(
         "Enter the absolute folder path containing images:"
@@ -240,7 +250,7 @@ if st.session_state.api_key:
                 )
 
                 # Add result to list
-                results.append({
+                to_append = {
                     "Image": image_name,
                     "Input Text": input_text,
                     "Rain Intensity": rain_intensity,
@@ -256,7 +266,16 @@ if st.session_state.api_key:
                     "Saturation Intensity": saturation_intensity,
                     "Hue Shift": hue_shift,
                     "AI Response": response
-                })
+                }
+
+                # Add user defined column
+                for x in parsed_json:
+                    ret = re.search(x['pattern'], response)
+                    if ret:
+                        to_append[x['name']] = ret.group(1)
+                    else:
+                        to_append[x['name']] = ''
+                results.append(to_append)
 
                 # Show AI response
                 st.write(f"AI Response for {image_name}:")
