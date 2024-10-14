@@ -110,7 +110,7 @@ This diagram outlines the key components and technologies used in our Multimodal
 
 - Frontend: Streamlit
 - Backend: Python
-- AI Model: Google Gemini Pro Vision
+- AI Model: Google Gemini 1.5 Flash
 - Image Processing: PIL (Python Imaging Library)
 - Data Handling: Pandas, NumPy
 
