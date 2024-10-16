@@ -8,3 +8,5 @@ scipy==1.14.1
 altair==5.4.1
 numpy==2.1.2
 protobuf==5.28.2
+pytest==8.3.3
+pytest-mock==3.14.0
