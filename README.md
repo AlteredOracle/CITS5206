@@ -4,6 +4,14 @@
 
 This project implements a Multimodal Large Language Model (LLM) Road Safety Platform using Streamlit and Google's Gemini 1.5 Flash AI model. The platform is designed to analyze road safety scenarios using advanced AI, providing insights and recommendations based on both textual and visual inputs.
 
+## Deployed Application
+
+The Multimodal LLM Road Safety Platform is deployed and accessible online at:
+
+[https://llmroadsafetyplatform.streamlit.app/](https://llmroadsafetyplatform.streamlit.app/)
+
+You can use this link to access and use the application directly without any local setup.
+
 ## Project Scope
 
 The scope of this project includes:
@@ -84,6 +92,16 @@ The scope of this project includes:
 
 5. Open a web browser and navigate to the URL provided by Streamlit (usually `http://localhost:8501`).
 
+## Running Tests
+
+To run the tests for this project, execute the following command from the root directory of the project:
+
+```
+pytest tests/test_all.py
+```
+
+This command will run all the tests defined in the `test_all.py` file, which includes unit tests for various components of the application.
+
 ## Usage
 
 1. Enter your Gemini API key in the provided field when you start the app.
@@ -121,4 +139,3 @@ The structure showcases how user inputs are processed through our application, l
 For design mockups and visual representations of the Multimodal LLM Road Safety Platform, please refer to the following link:
 
 [View Design on Figma](https://www.figma.com/design/XaY1Gj4GGDYnQT3a7rHhKs/Multimodal-LLM-Road-Safety-Platform?node-id=0-1&t=m9u1DMpXtYAX23DD-1)
-
