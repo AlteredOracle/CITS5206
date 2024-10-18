@@ -116,6 +116,14 @@ This command will run all the tests defined in the `test_all.py` file, which inc
    - Set centralized distortion settings or customize for each image.
    - Run the bulk analysis to process all images and generate a CSV report.
 
+## Sample Image for Testing
+
+To test the application, you can use the following sample image:
+
+[Sample Road Safety Image](https://github.com/sreeramsa/DriveSim/blob/main/Eval_LLM_Drive/accelerate/nine/rate_1_scene-0017.png)
+
+This image can be downloaded and used as input for the single image analysis or as part of a bulk analysis test.
+
 ## Project Structure
 
 ## Application Structure
