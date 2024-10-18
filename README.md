@@ -134,11 +134,11 @@ The application stack for this project is illustrated in the following diagram:
 
 This diagram outlines the key components and technologies used in our Multimodal LLM Road Safety Platform, including:
 
-- Frontend: Streamlit
-- Backend: Python
-- AI Model: Google Gemini 1.5 Flash
-- Image Processing: PIL (Python Imaging Library)
-- Data Handling: Pandas, NumPy
+- **Frontend:** Streamlit
+- **Backend:** Python
+- **AI Model:** Google Gemini 1.5 Flash
+- **Image Processing:** PIL (Python Imaging Library)
+- **Data Handling:** Pandas, NumPy
 
 The structure showcases how user inputs are processed through our application, leveraging various libraries and the Gemini AI model to analyze road safety scenarios and provide insights.
 
